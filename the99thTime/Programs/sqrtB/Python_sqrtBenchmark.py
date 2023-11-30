@@ -3,7 +3,7 @@ import os
 import random
 from datetime import datetime
 
-NUM_ITERATIONS = 3600000
+NUM_ITERATIONS = 3600000 * 7
 
 currentDatetime = datetime.now()
 dateTimeString = currentDatetime.strftime("%Y%m%d_%H%M%S")
@@ -18,4 +18,4 @@ with open(filePath, "w") as writer:
         a = random.randrange(20000, 40001)
         writer.write(f"{math.sqrt(a)}\n")
 
-print("Done")
+

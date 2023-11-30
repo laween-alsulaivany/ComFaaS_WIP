@@ -2,7 +2,7 @@ import math
 import os
 from datetime import datetime
 
-NUM_ITERATIONS = 10000
+NUM_ITERATIONS = 10000 * 7
 
 currentDatetime = datetime.now()
 dateTimeString = currentDatetime.strftime("%Y%m%d_%H%M%S")

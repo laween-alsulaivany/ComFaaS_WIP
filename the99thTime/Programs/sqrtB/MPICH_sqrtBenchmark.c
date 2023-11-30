@@ -1,4 +1,4 @@
-#include "mpi.h"
+ #include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -29,7 +29,10 @@ MPI_Init(&argc, &argv) ;
 MPI_Comm_size(MPI_COMM_WORLD, &numtasks) ;
 MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
-NUM_ITERATIONS = (3600000 * 7)/ numtasks ;
+int step1 = (3600000 * 7) / numtasks ;
+int step2 = (3600000 * 7) % numtasks ;
+
+NUM_ITERATIONS = step1 + (rank<step2) ;
 timetravel_v_rank = (time_t)rank ;
 
 printf("My rank: %d.\n", rank) ;

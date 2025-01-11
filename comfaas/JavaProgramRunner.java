@@ -63,7 +63,6 @@ public class JavaProgramRunner {
                 runner.runJavaProgram(className);
             }
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
         }
     }
 }

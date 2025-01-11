@@ -4,9 +4,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Arrays;
+
 
 public class PythonRunner {
 
@@ -27,9 +26,7 @@ public class PythonRunner {
         ProcessBuilder processBuilder = new ProcessBuilder(pipExecutable, "install");
         
         // Add packages to the command
-        for (String pkg : packages) {
-            processBuilder.command().add(pkg);
-        }
+        processBuilder.command().addAll(Arrays.asList(packages));
 
         executeProcess(processBuilder);
     }
@@ -102,7 +99,6 @@ public class PythonRunner {
         try {
             PythonRunner.runPythonScript(scriptPath);
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
         }
     }
 }

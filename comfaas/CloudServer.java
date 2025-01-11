@@ -2,11 +2,17 @@
 
 package comfaas;
 
+import comfaas.Logger.LogLevel;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 
 
 // ------------------------------------------
@@ -16,179 +22,122 @@ import java.net.Socket;
 // ------------------------------------------
 public class CloudServer extends CoreOperations {
     // Logging
-    private static final Logger server_logger = new Logger("cloudServer_logs.csv");
+    private static final Logger logger = new Logger(Main.LogFile);
+
+    // A static flag to indicate that we are shutting down
+    private static volatile boolean shuttingDown = false;
+
+    // The thread pool. We'll create it in run(), store it in a static so we can shut it down if needed.
+    private static ExecutorService executor = null;
+    private static int shutdownTimeoutSec = Main.shutdownTimeout > 0 ? Main.shutdownTimeout : 30;
+
 
     // ------------------------------------------
     // Default constructor, if needed.
     // ------------------------------------------
- public CloudServer() {
-     server_logger.logInfo("CloudServer instance created (no client yet).");
-
- }
-
-    // ------------------------------------------
-    // Constructor that accepts a ServerSocket, accepts one client connection,
-    // and initializes the dis/dos streams.
-    // ------------------------------------------
-    public CloudServer(ServerSocket tmp) throws IOException {
-        server_logger.logNewline("--------------------");
-        server_logger.logInfo("CloudServer: Awaiting an incoming client connection...");
-        Socket clientSocket = tmp.accept();
-        this.socket = clientSocket;
-        this.dis = new DataInputStream(clientSocket.getInputStream());
-        this.dos = new DataOutputStream(clientSocket.getOutputStream());
-        server_logger.logSuccess("Cloud Connection established with client");
+    public CloudServer() {
+        logger.logEvent(LogLevel.INFO, "CloudServer", "Initialization", 
+            "CloudServer instance created (no client yet).", 0, -1);
     }
+    
+
+    // ------------------------------------------
+    // Constructor that accepts client socket and initializes dis/dos.
+    // ------------------------------------------
+public CloudServer(Socket clientSocket) throws IOException {
+    logger.newline();
+    logger.network("CloudServer", "Connection", "Handling an incoming client socket...");
+    this.socket = clientSocket;
+    this.dis = new DataInputStream(clientSocket.getInputStream());
+    this.dos = new DataOutputStream(clientSocket.getOutputStream());
+    logger.logEvent(LogLevel.SUCCESS, "CloudServer", "Connection", 
+    "Cloud Connection established with client.", 0, -1);
+}
 
     // ------------------------------------------
     // Starts a server on the Cloud side to accept connections from a "real" client.
     // ------------------------------------------
     public static void run(int port) throws IOException, InterruptedException {
-        server_logger.log("INFO", "Server started and listening on port " + port, "CloudServer", "Initialization", -1);
-        server_logger.logNetwork("Cloud server listening on port " + port);
 
-        try {
-            ServerSocket cloudServerSocket = new ServerSocket(port);
-            // CloudServer server = new CloudServer(cloudServerSocket);
 
-            // Accept incoming connections in a loop
-            while (true) {
-                CloudServer server = null;
+        int maxThreads = Main.maxThreads > 0 ? Main.maxThreads : 10;
+
+        logger.logEvent(LogLevel.INFO, "CloudServer", "Startup",
+            "Listening on port " + port + " with maxThreads=" + maxThreads, 0, -1);
+
+        // Create a thread pool (store in static var so we can shut it down later)
+        executor = Executors.newFixedThreadPool(maxThreads);
+
+        int acceptTimeoutMs = 2000; // poll every 2 seconds
+        try (ServerSocket cloudServerSocket = new ServerSocket(port)) {
+            cloudServerSocket.setSoTimeout(acceptTimeoutMs);
+
+            // Keep accepting while not shutting down
+            while (!shuttingDown) {
                 try {
-                server = new CloudServer(cloudServerSocket);
-                server_logger.log("INFO", "Accepted client connection", "CloudServer", "Connection", -1);
-                server_logger.logSuccess( "Accepted client connection on cloud server");
-                
-                // handle all incoming requests
-                server.manageRequests();
+                    // accept will block up to acceptTimeoutMs
+                    Socket clientSocket = cloudServerSocket.accept();
 
-                server_logger.logSuccess("Request handled successfully");
-                server_logger.log("INFO", "Request handled successfully", "CloudServer", "Server", -1);
-            
-            } catch (IOException | InterruptedException e) {
-                    server_logger.logError("Error handling client request: " + e.getMessage(), "CloudServer", "Connection");
-            } finally {
-                    // clean up
-                    try {
-                        server.close();
-                    } catch (IOException e) {
-                        // System.err.println("Error closing cloud server resources: " + e.getMessage());
-                        server_logger.logError("Error closing cloud server resources: " + e.getMessage(), "CloudServer", "Closing");
+                    logger.logEvent(LogLevel.INFO, "CloudServer", "Connection",
+                        "Accepted client connection.", 0, -1);
+
+                    // Build the new cloudServer object from that socket
+                    CloudServer newServer = new CloudServer(clientSocket);
+
+                    // Handle the client request in a separate thread
+                    executor.submit(() -> {
+                        try {
+                            newServer.manageRequests();
+                            logger.logEvent(LogLevel.SUCCESS, "CloudServer", "RequestHandling",
+                                "Request handled successfully.", 0, -1);
+                        } catch (IOException | InterruptedException e) {
+                            // ignore
+   
+                        } finally {
+                            try {
+                                newServer.close(true);
+                            } catch (IOException e) {
+                                logger.logEvent(LogLevel.ERROR, "CloudServer", "close()",
+                                    "Error closing resources: " + e.getMessage(), 0, -1);
+                            }
+                        }
+                    });
+
+                } catch (SocketTimeoutException ste) {
+                    // ignore
+                } catch (IOException e) {
+                    // If we're shutting down, we might ignore
+                    if (!shuttingDown) {
+                        logger.logEvent(LogLevel.ERROR, "CloudServer", "accept()",
+                            "Error accepting client connection: " + e.getMessage(), 0, -1);
                     }
                 }
             }
-        } 
-        catch (IOException e) {
-            server_logger.logError("Error starting Cloud server: " + e.getMessage(), "CloudServer", "Initialization");
-        }
+        } catch (IOException e) {
+            logger.logEvent(LogLevel.ERROR, "CloudServer", "Initialization",
+                "Error starting Cloud server: " + e.getMessage(), 0, -1);
+        } finally {
+            // Once we exit the while loop, we want to gracefully shut down the thread pool
+            logger.logEvent(LogLevel.INFO, "CloudServer", "Shutdown", 
+                "Shutting down thread pool...", 0, -1);
 
+            executor.shutdown();
+            if (!executor.awaitTermination(shutdownTimeoutSec, TimeUnit.SECONDS)) {
+                logger.logEvent(LogLevel.WARNING, "CloudServer", "Shutdown",
+                    "Forcing shutdownNow after waiting " + shutdownTimeoutSec + "s", 0, -1);
+                executor.shutdownNow();
+
+            }
+
+            logger.logEvent(LogLevel.SUCCESS, "CloudServer", "Shutdown",
+                "Cloud server has shut down gracefully.", 0, -1);
+        }
     }
 
+    // Called by manageRequests() if we see "shutdownServer"
+    public static void setShutdownFlag() {
+        shuttingDown = true;
+        logger.logEvent(LogLevel.INFO, "CloudServer", "ShutdownFlag",
+            "Set shuttingDown=true; server will close after finishing tasks.", 0, -1);
+    }
 }
-
-// //
-// // CloudServer.java
-
-// package comfaas;
-
-// import java.io.DataInputStream;
-// import java.io.DataOutputStream;
-// import java.io.EOFException;
-// import java.io.IOException;
-// import java.net.ServerSocket;
-// import java.net.Socket;
-
-// // ------------------------------------------
-// // * The Server (or CloudServer) class extends CoreOperations and handles
-// // * inbound socket operations for the Cloud. It listens for client connections
-// // * (which might be EdgeClient or any other client) and manages requests.
-// // ------------------------------------------
-// public class CloudServer extends CoreOperations {
-
-//     // Logging
-//     private static final Logger server_logger = new Logger("server_logs.csv");
-
-//     // ------------------------------------------
-//     // Default constructor, if needed.
-//     // ------------------------------------------
-//     public CloudServer() {
-//         System.out.println("CloudServer instance created (no client yet).");
-//     }
-
-//     // ------------------------------------------
-//     // Constructs a CloudServer by accepting one incoming connection
-//     // on the provided ServerSocket, then sets up dis/dos streams.
-//     // ------------------------------------------
-//     public CloudServer(ServerSocket tmp) throws IOException {
-//         System.out.println("CloudServer: Awaiting an incoming client connection...");
-//         Socket clientSocket = tmp.accept();
-//         this.socket = clientSocket;
-//         this.dis = new DataInputStream(clientSocket.getInputStream());
-//         this.dos = new DataOutputStream(clientSocket.getOutputStream());
-//         System.out.println("Cloud Connection established with client");
-//     }
-
-//     // ------------------------------------------
-//     // Runs the server loop, continuously accepting new connections
-//     // and calling manageRequests() from CoreOperations.
-//     // ------------------------------------------
-//     public static void run(int port) throws IOException, InterruptedException {
-//         server_logger.log("INFO", "Server started and listening on port " + port, "CloudServer", "Initialization", -1);
-//         System.out.println("Cloud server listening on port " + port);
-
-//         try (ServerSocket cloudServerSocket = new ServerSocket(port)) {
-//             while (true) {
-//                 CloudServer server = null;
-//                 try {
-//                     // Only accept and construct CloudServer once per client
-//                     server = new CloudServer(cloudServerSocket);
-//                     System.out.println("Accepted client connection on cloud server");
-//                     server_logger.log("INFO", "Accepted client connection", "CloudServer", "Connection", -1);
-
-//                     // handle all incoming requests
-//                     server.manageRequests();
-
-//                     System.out.println("Finished handling client request(s)");
-//                     server_logger.log("INFO", "Request handled successfully", "CloudServer", "Server", -1);
-
-//                 } catch (IOException | InterruptedException e) {
-//                     System.err.println("Error handling client request: " + e.getMessage());
-//                     server_logger.logError("Error handling client request: " + e.getMessage(), "CloudServer", "Connection");
-//                 } finally {
-//                     // clean up
-//                     try {
-//                         server.close();
-//                     } catch (IOException e) {
-//                         System.err.println("Error closing cloud server resources: " + e.getMessage());
-//                         server_logger.logError("Error closing cloud server resources: " + e.getMessage(), "CloudServer", "Closing");
-//                     }
-//                 }
-//             }
-//         } catch (IOException e) {
-//             System.err.println("Error starting Cloud server: " + e.getMessage());
-//             server_logger.logError("Error starting Cloud server: " + e.getMessage(), "CloudServer", "Initialization");
-//         }
-//     }
-
-//     @Override
-//     public void manageRequests() throws IOException, InterruptedException {
-//         String command;
-//         while (true) {
-//             command = null;
-//             try {
-//                 command = this.dis.readUTF();
-//             } catch (EOFException e) {
-//                 System.out.println("Client closed connection unexpectedly.");
-//                 break;
-//             }
-//             if (command == null || "done".equals(command)) {
-//                 System.out.println("No more commands or client finished. Exiting.");
-//                 break;
-//             }
-//             // ...existing code...
-//         }
-//         // ...existing code...
-//     }
-// }
-
-

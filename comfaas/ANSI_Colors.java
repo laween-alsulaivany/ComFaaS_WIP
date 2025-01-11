@@ -11,5 +11,8 @@ public class ANSI_Colors {
     public static final String BLUE = "\u001B[34m";      // Blue
     public static final String PURPLE = "\u001B[35m";    // Purple
     public static final String CYAN = "\u001B[36m";      // Cyan
+    public static final String WHITE = "\u001B[37m";     // White
+    public static final String BLACK = "\u001B[30m";     // Black
+    public static final String BOLD = "\u001B[1m";       // Bold
 
 }

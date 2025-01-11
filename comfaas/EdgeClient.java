@@ -15,7 +15,7 @@ import java.net.UnknownHostException;
 
 public class EdgeClient extends CoreOperations {
     // Logging
-    private static final Logger edge_logger = new Logger("edgeClient_logs.csv");
+    private static final Logger logger = new Logger(Main.LogFile);
 
     // ------------------
     // Command-line arguments and task properties
@@ -37,14 +37,13 @@ public class EdgeClient extends CoreOperations {
     // Constructor that takes in command-line args and connects to the server.
     // ------------------------------------------
     public EdgeClient(String[] args) {
-        edge_logger.logInfo("Edge client initialized.");
-        edge_logger.log("INFO", "Edge client initialized", "N/A", "EdgeClient", -1);
+        logger.info("EdgeClient", "Constructor", "Edge client initialized.");
 
         // Basic argument check
         if (args.length < 6) {
-            edge_logger.logError("Invalid arguments. Required at least: "
+            logger.warning("EdgeClient", "Constructor", "Invalid arguments. Required at least: "
                     + "-server [host], -p [port], -t [cloud/edge], "
-                    + "-np [#processes], -tn [taskname], -lang [language]", "N/A", "EdgeClient");
+                    + "-np [#processes], -tn [taskname], -lang [language]");
             System.exit(1);
         }
 
@@ -57,15 +56,14 @@ public class EdgeClient extends CoreOperations {
         for (String dir : requiredDirs) {
             File directory = new File(dir);
             if (!directory.exists() && !directory.mkdirs()) {
-                edge_logger.logError("Failed to create directory: " + dir);
+                logger.error("EdgeClient", "Constructor", "Failed to create directory: " + dir);
                 System.exit(1);
             }
         }
 
         // Connect to the server
         try {
-            edge_logger.logNetwork("Connecting to server at " + this.server + ":" + this.port);
-            edge_logger.log("INFO", "Connecting to server", "N/A", "EdgeClient", -1);
+            logger.network("EdgeClient", "Constructor", "Connecting to server at " + this.server + ":" + this.port);
 
             // Create the socket
             this.socket = new Socket(this.server, this.port);
@@ -74,14 +72,13 @@ public class EdgeClient extends CoreOperations {
             this.dis = new DataInputStream(socket.getInputStream());
             this.dos = new DataOutputStream(socket.getOutputStream());
 
-            edge_logger.logSuccess("Edge client successfully connected to the server.");
-            edge_logger.log("INFO", "Connected to server", "N/A", "EdgeClient", -1);
+            logger.success("EdgeClient", "Constructor", "Edge client successfully connected to the server.");
 
         } catch (UnknownHostException e) {
-            edge_logger.logError("Unknown host: " + this.server);
+            logger.error("EdgeClient", "Constructor", "Unknown host: " + this.server);
             System.exit(1);
         } catch (IOException e) {
-            edge_logger.logError("Error connecting to server: " + e.getMessage());
+            logger.error("EdgeClient", "Constructor", "Error connecting to server: " + e.getMessage());
             System.exit(1);
         }
     }
@@ -143,6 +140,8 @@ public class EdgeClient extends CoreOperations {
     public void runRemoteTask(String location, String language, String programName, int np) throws IOException {
         // 1) Send the command
         dos.writeUTF("executeTask");
+        logger.info("EdgeClient", "runRemoteTask", "Executing task remotely: " +
+                "Location=" + location + ", Language=" + language + ", Program=" + programName + ", Processes=" + np);
         // 2) Send parameters
         dos.writeUTF(location);     // "cloud" or "edge"
         dos.writeUTF(language);     // e.g. "c" or "python"
@@ -159,7 +158,7 @@ public class EdgeClient extends CoreOperations {
         if (response.startsWith("ERR:")) {
             throw new IOException("Remote execution error: " + response);
         }
-        edge_logger.logNetwork("Server response: " + response);
+        logger.network("EdgeClient", "runRemoteTask", "Server response: " + response);
         // expected: "executeTaskComplete" or "OK: Task executed successfully"
         dos.writeUTF("done");
         dos.flush();

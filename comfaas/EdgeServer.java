@@ -4,108 +4,118 @@ package comfaas;
 
 
 
+import comfaas.Logger.LogLevel;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-    // ------------------------------------------
-    // * The EdgeServer class represents an edge node acting as a server
-    // * for local clients (or any external client), receiving requests and
-    // * handling them with CoreOperations (file transfers, etc.).
-    // ------------------------------------------
+// ------------------------------------------
+// * The EdgeServer class represents an edge node acting as a server
+// * for local clients (or any external client), receiving requests and
+// * handling them with CoreOperations (file transfers, etc.).
+// ------------------------------------------
 public class EdgeServer extends CoreOperations {
     // Logging
-    private static final Logger server_logger = new Logger("edgeServer_logs.csv");
+    private static final Logger logger = new Logger(Main.LogFile);
+
+    // A static flag to indicate that we are shutting down
+    private static volatile boolean shuttingDown = false;
+
+    // The thread pool. We'll create it in run(), store it in a static so we can shut it down if needed.
+    private static ExecutorService executor = null;
 
     // ------------------------------------------
     // Default constructor, if needed.
     // ------------------------------------------
-    public EdgeServer() {
-        server_logger.logInfo("EdgeServer instance created (no client yet).");
-    }
+public EdgeServer() {
+    logger.logEvent(LogLevel.INFO, "EdgeServer", "Initialization", 
+        "EdgeServer instance created (no client yet).", 0, -1);
+}
+
 
     // ------------------------------------------
-    // Constructor that accepts a ServerSocket, accepts one client connection,
-    // and initializes the dis/dos streams.
+    // Constructor that accepts client socket and initializes dis/dos.
     // ------------------------------------------
-    public EdgeServer(ServerSocket tmp) throws IOException {
-        server_logger.logNewline("--------------------");
-        server_logger.logInfo("EdgeServer: Awaiting an incoming client connection...");
-        Socket clientSocket = tmp.accept();
+    public EdgeServer(Socket clientSocket) throws IOException {
+        logger.newline();
+        logger.logEvent(LogLevel.NETWORK, "EdgeServer", "Connection", 
+            "Handling an incoming client socket...", 0, -1);
         this.socket = clientSocket;
         this.dis = new DataInputStream(clientSocket.getInputStream());
         this.dos = new DataOutputStream(clientSocket.getOutputStream());
-        server_logger.logSuccess("Edge Connection established with client");
+        logger.logEvent(LogLevel.SUCCESS, "EdgeServer", "Connection", 
+            "Edge Connection established with client.", 0, -1);
     }
+    
+    
 
 
     // ------------------------------------------
     // Starts a server on the Edge side to accept connections from a "real" client.
     // ------------------------------------------
     public static void run(int port) throws IOException, InterruptedException {
-        server_logger.log("INFO", "Edge server starting on port " + port, "EdgeServer", "Initialization", -1);
-        server_logger.logNetwork("Edge server listening on port " + port);
-        
-        try {
-            ServerSocket edgeServerSocket = new ServerSocket(port);
+        logger.logEvent(LogLevel.INFO, "EdgeServer", "Startup",
+            "Listening on port " + port, 0, -1);
 
+        int maxThreads = Main.maxThreads > 0 ? Main.maxThreads : 10;
+        executor = Executors.newFixedThreadPool(maxThreads);
 
-            // Accept incoming connections in a loop
-            while (true) {
-                EdgeServer server = null;
+        try (ServerSocket edgeSocket = new ServerSocket(port)) {
+            edgeSocket.setSoTimeout(2000);
+
+            while (!shuttingDown) {
                 try {
-                    // Create a new EdgeServer instance for each new client
-                    server = new EdgeServer(edgeServerSocket);
-                    server_logger.log("INFO", "Accepted client connection", "EdgeServer", "Connection", -1);
-                    server_logger.logSuccess( "Accepted client connection on edge server");
+                    Socket clientSocket = edgeSocket.accept();
+                    EdgeServer newServer = new EdgeServer(clientSocket);
 
-                    // handle all incoming requests
-                    server.manageRequests(); // from CoreOperations
-
-                    server_logger.logSuccess("Request handled successfully");
-                    server_logger.log("INFO", "Request handled successfully", "EdgeServer", "Server", -1);
-
-                } catch (IOException | InterruptedException e) {
-                    server_logger.logError("Error accepting client connection: " + e.getMessage(), "EdgeServer", "Connection");
-                } finally {
-                    // clean up
-                    try {
-                        server.close();
-                    } catch (IOException e) {
-                        server_logger.logError("Error closing edge server resources: " + e.getMessage(), "CloudServer", "Closing");
+                    executor.submit(() -> {
+                        try {
+                            newServer.manageRequests();
+                            logger.logEvent(LogLevel.SUCCESS, "EdgeServer", "RequestHandling",
+                                "Request handled successfully.", 0, -1);
+                        } catch (IOException | InterruptedException e) {
+                            // ignore
+                        } finally {
+                            try {
+                                newServer.close(true);
+                            } catch (IOException e) {
+                                logger.logEvent(LogLevel.ERROR, "EdgeServer", "close()",
+                                    "Error closing resources: " + e.getMessage(), 0, -1);
+                            }
+                        }
+                    });
+                } catch (SocketTimeoutException ignored) {
+                } catch (IOException e) {
+                    if (!shuttingDown) {
+                        logger.logEvent(LogLevel.ERROR, "EdgeServer", "accept()",
+                            "Error accepting client: " + e.getMessage(), 0, -1);
                     }
                 }
             }
-        } catch (IOException e) {
-            server_logger.logError("Error starting Edge server: " + e.getMessage(), "CloudServer", "Initialization");
+        } finally {
+            // Graceful shutdown
+            executor.shutdown();
+            int timeoutSec = Main.shutdownTimeout > 0 ? Main.shutdownTimeout : 30;
+            if (!executor.awaitTermination(timeoutSec, TimeUnit.SECONDS)) {
+                logger.logEvent(LogLevel.WARNING, "EdgeServer", "Shutdown",
+                    "Forcing shutdownNow after waiting " + timeoutSec + "s", 0, -1);
+                executor.shutdownNow();
+            }
+
+            logger.logEvent(LogLevel.SUCCESS, "EdgeServer", "Shutdown",
+                "Edge server shut down gracefully.", 0, -1);
         }
     }
 
+    public static void setShutdownFlag() {
+        shuttingDown = true;
+        logger.logEvent(LogLevel.INFO, "EdgeServer", "ShutdownFlag",
+            "Set shuttingDown=true; server will close after finishing tasks.", 0, -1);
+    }
 }
-
-
-
-
-
-//     @Override
-//     public void manageRequests() throws IOException, InterruptedException {
-//         String command;
-//         while (true) {
-//             command = null;
-//             try {
-//                 command = this.dis.readUTF();
-//             } catch (EOFException e) {
-//                 System.out.println("Client closed connection unexpectedly.");
-//                 break;
-//             }
-//             if (command == null || "done".equals(command)) {
-//                 System.out.println("No more commands or client finished. Exiting.");
-//                 break;
-//             }
-//             // ...existing code...
-//         }
-//         // ...existing code...
-//     }
-// }

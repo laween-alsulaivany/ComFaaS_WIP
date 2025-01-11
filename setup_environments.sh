@@ -1,4 +1,4 @@
-#!/bin/bash
+# setup_environments.sh: Set up the server and edge environments for ComFaaS
 
 # Log utility function
 log() {

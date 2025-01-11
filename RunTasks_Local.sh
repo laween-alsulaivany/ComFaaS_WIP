@@ -1,4 +1,5 @@
-#!/bin/bash
+# RunTasks_Local.sh: Run edge tasks locally
+
 echo "Running edge tasks locally..."
 
 echo "Task 1"

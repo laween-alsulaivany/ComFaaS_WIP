@@ -1,3 +1,5 @@
+// FileTypeDetector.java
+
 package comfaas;
 
 public class FileTypeDetector {
@@ -14,15 +16,4 @@ public class FileTypeDetector {
         }
     }
 
-    public static void main(String[] args) {
-        String javaFile = "HelloWorld.java";
-        String pythonFile = "script.py";
-        String cFile = "program.c";
-        String unknownFile = "readme.txt";
-
-        // System.out.println(detectFileType(javaFile));
-        // System.out.println(detectFileType(pythonFile));
-        // System.out.println(detectFileType(cFile));
-        // System.out.println(detectFileType(unknownFile));
-    }
 }

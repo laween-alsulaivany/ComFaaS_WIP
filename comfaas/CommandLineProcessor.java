@@ -106,14 +106,4 @@ public class CommandLineProcessor {
         }
     }
         
-        // Debugging: Print all parsed arguments
-        // System.out.println("Arguments parsed successfully:");
-        // System.out.println(" - Server: " + client.server);
-        // System.out.println(" - Port: " + client.port);
-        // System.out.println(" - Type: " + client.type);
-        // System.out.println(" - Processes: " + client.np);
-        // System.out.println(" - Task Name: " + client.tn);
-        // System.out.println(" - Language: " + client.lang);
-        // Validate type-specific arguments
-        
     }

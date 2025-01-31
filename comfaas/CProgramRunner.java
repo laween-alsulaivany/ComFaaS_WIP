@@ -115,7 +115,6 @@ public class CProgramRunner {
                 runner.deleteExecutable(cSourceFilePath);
             }
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
         }
     }
 }

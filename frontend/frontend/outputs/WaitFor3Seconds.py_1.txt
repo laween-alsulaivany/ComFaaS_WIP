@@ -1,0 +1,4 @@
+[32m[INFO] Loaded config from: /mnt/c/Users/Lawee/OneDrive/Desktop/comfaas/comfaas_V3/backend/configs/comfaas.properties[0m
+[36m[01:01:09] [INFO] EdgeClient :: Constructor -> Edge client initialized.[0m
+[34m[01:01:09] [NETWORK] EdgeClient :: Constructor -> Connecting to server at 127.0.0.1:12353[0m
+[31m[01:01:09] [ERROR] EdgeClient :: Constructor -> Error connecting to server: Connection refused[0m

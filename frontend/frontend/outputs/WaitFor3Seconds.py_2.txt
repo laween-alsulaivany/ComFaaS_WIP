@@ -1,0 +1,7 @@
+[32m[INFO] Loaded config from: /mnt/c/Users/Lawee/OneDrive/Desktop/comfaas/comfaas_V3/backend/configs/comfaas.properties[0m
+[36m[01:02:07] [INFO] EdgeClient :: Constructor -> Edge client initialized.[0m
+[34m[01:02:07] [NETWORK] EdgeClient :: Constructor -> Connecting to server at 127.0.0.1:12354[0m
+[32m[01:02:07] [SUCCESS] EdgeClient :: Constructor -> Edge client successfully connected to the server.[0m
+[36m[01:02:07] [INFO] EdgeClient :: runRemoteTask -> Executing task remotely: Location=cloud, Language=python, Program=WaitFor3Seconds.py, Processes=1[0m
+[34m[01:02:10] [NETWORK] EdgeClient :: runRemoteTask -> Server response: executeTaskComplete[0m
+[32m[01:02:10] [SUCCESS] Main :: handleEdgeRemoteTask -> Remote task complete[0m

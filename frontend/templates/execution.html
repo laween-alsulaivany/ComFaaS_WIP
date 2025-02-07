@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Execution Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Execution Dashboard</h1>
+
+        <div class="section">
+            <h2>Running Application</h2>
+            <ul>
+                {% for file in selected_files %}
+                <li>{{ file }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Upload Input Files</h2>
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <input type="file" name="file">
+                <button type="submit">Upload</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>Execution Status</h2>
+            <div class="status-box">
+                <p>Status: <span class="status">Pending</span></p>
+            </div>
+            <button id="start-btn" class="start-btn">Start Execution</button>
+        </div>
+
+        <div class="section">
+            <h2>Execution Logs</h2>
+            <pre id="log-output">Waiting for execution...</pre>
+        </div>
+
+        <div class="section">
+            <h2>Download Output File</h2>
+            <p>Available when execution is complete.</p>
+            <button id="download-btn" disabled class="download-btn">Download</button>
+        </div>
+
+        <div class="back">
+            <a href="/">⬅ Go Back</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("start-btn").addEventListener("click", function() {
+            let selectedFiles = JSON.parse('{{ selected_files | tojson | safe }}'); // FIXED!
+
+            fetch("/start", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ "selected_files": selectedFiles })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    document.querySelector(".status").textContent = "Running...";
+                    checkLogs(selectedFiles[0]); // Fetch logs dynamically
+                }
+            });
+        });
+
+        function checkLogs(filename) {
+            fetch(`/logs/${filename}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("log-output").textContent = data.logs.join("");
+                if (data.logs.some(log => log.includes("Execution completed"))) {
+                    document.querySelector(".status").textContent = "Completed";
+                    document.getElementById("download-btn").disabled = false;
+                } else {
+                    setTimeout(() => checkLogs(filename), 2000); // Check logs every 2 seconds
+                }
+            });
+        }
+    </script>
+</body>
+</html>

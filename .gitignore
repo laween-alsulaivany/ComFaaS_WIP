@@ -1,0 +1,17 @@
+venv/
+out/
+.serverVenv/
+.edgeVenv/
+
+
+*.log
+*.csv
+*.jar
+
+
+env.sh
+
+
+__pycache__/
+*.pyc
+.vscode/

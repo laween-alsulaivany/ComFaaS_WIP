@@ -3,7 +3,7 @@
 
 #!/usr/bin/env bash
 #
-# setup_environments.sh - Set up the server and edge environments for ComFaaS.
+# setup_environments.sh - Set up the server and client environments for ComFaaS.
 
 # --------------------------------------------------------------------------------
 # 1. Load environment variables
@@ -47,7 +47,7 @@ for PACKAGE in "${PACKAGES[@]}"; do
 done
 
 # --------------------------------------------------------------------------------
-# 3. Set up directories for server and edge
+# 3. Set up directories for server and client
 # --------------------------------------------------------------------------------
 setup_directories() {
     local TARGET="$1"
@@ -59,12 +59,12 @@ setup_directories() {
                      "$SERVER_DIR/Output" \
             || error_exit "Failed to create server directories"
             ;;
-        ("edge")
-            log "Setting up directories for the edge..."
-            mkdir -p "$EDGE_DIR/Programs" \
-                     "$EDGE_DIR/Input" \
-                     "$EDGE_DIR/Output" \
-            || error_exit "Failed to create edge directories"
+        ("client")
+            log "Setting up directories for the client..."
+            mkdir -p "$CLIENT_DIR/Programs" \
+                     "$CLIENT_DIR/Input" \
+                     "$CLIENT_DIR/Output" \
+            || error_exit "Failed to create client directories"
             ;;
         (*)
             error_exit "Invalid target for directory setup: $TARGET"
@@ -73,7 +73,7 @@ setup_directories() {
 }
 
 setup_directories "server"
-setup_directories "edge"
+setup_directories "client"
 
 # --------------------------------------------------------------------------------
 # 4. Set up Python virtual environments
@@ -97,7 +97,7 @@ setup_virtualenv() {
 }
 
 setup_virtualenv "$SERVER_VENV"
-setup_virtualenv "$EDGE_VENV"
+setup_virtualenv "$CLIENT_VENV"
 
 # --------------------------------------------------------------------------------
 # 5. Compile Java application and create JAR
@@ -118,13 +118,13 @@ jar cmf "$CONFIGS_DIR/manifest.txt" "$ROOT_DIR/ComFaaS.jar" -C "$OUT_DIR" . \
 rm -rf "$OUT_DIR"
 
 # --------------------------------------------------------------------------------
-# 6. Initialize server and edge
+# 6. Initialize server and client
 # --------------------------------------------------------------------------------
 log "Initializing server with ComFaaS..."
 java -jar "$ROOT_DIR/ComFaaS.jar" server init || error_exit "Failed to initialize server"
 
-log "Initializing edge with ComFaaS..."
-java -jar "$ROOT_DIR/ComFaaS.jar" edge init || error_exit "Failed to initialize edge"
+log "Initializing client with ComFaaS..."
+java -jar "$ROOT_DIR/ComFaaS.jar" client init || error_exit "Failed to initialize client"
 
 # --------------------------------------------------------------------------------
 # Finished
@@ -133,4 +133,4 @@ log "Setup and initialization completed successfully."
 
 # Print out where the virtual environments were created
 echo "[INFO] Server VENV: $SERVER_VENV"
-echo "[INFO] Edge VENV:   $EDGE_VENV"
+echo "[INFO] Client VENV:   $Client_VENV"

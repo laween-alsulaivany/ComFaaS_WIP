@@ -1,19 +1,22 @@
 // Main.java
 package comfaas;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
-import java.io.File;
-
 
 /**
  * The Main class serves as the entry point for the ComFaaS application.
  * It handles command-line arguments and invokes the appropriate functionality
- * for server and edge operations.
+ * for server and client operations.
  */
 public class Main {
 
@@ -26,9 +29,7 @@ public class Main {
     public static String LogFile;
     public static int maxThreads;
     public static int shutdownTimeout; // in seconds
-    private static int cloudPort;
-    private static int edgePort;
-
+    private static int serverPort;
     // Our logger instance (constructed later)
     private static Logger logger;
 
@@ -52,14 +53,13 @@ public class Main {
     }
 
     public static File resolveLocalFile(String path) {
-    File file = new File(path);
-    // If not absolute, resolve it against the project root directory.
-    if (!file.isAbsolute()) {
-         file = rootDir.resolve(path).toFile();
+        File file = new File(path);
+        // If not absolute, resolve it against the project root directory.
+        if (!file.isAbsolute()) {
+            file = rootDir.resolve(path).toFile();
+        }
+        return file;
     }
-    return file;
-}
-
 
     // Getters for the static fields
     public static String getLogFile() {
@@ -83,13 +83,13 @@ public class Main {
         logger = new Logger(LogFile); // logger is now properly initialized
 
         if (args.length < 2) {
-            printUsage();
+            printUsage(); // TODO: DONE
             return;
         }
 
         switch (args[0]) {
             case "server" -> handleServerCommands(args);
-            case "edge" -> handleEdgeCommands(args);
+            case "client" -> handleClientCommands(args);
             default -> printUsage();
         }
     }
@@ -121,8 +121,7 @@ public class Main {
         LogFile = configProps.getProperty("log.file", "comfaas_logs.csv");
         maxThreads = Integer.parseInt(configProps.getProperty("max.threads", "10"));
         shutdownTimeout = Integer.parseInt(configProps.getProperty("graceful.shutdown.timeout", "30"));
-        cloudPort = Integer.parseInt(configProps.getProperty("cloud.server.port", "12353"));
-        edgePort = Integer.parseInt(configProps.getProperty("edge.server.port", "12354"));
+        serverPort = Integer.parseInt(configProps.getProperty("cloud.server.port", "12353"));
     }
 
     // -------------------------
@@ -136,8 +135,7 @@ public class Main {
     private static void handleServerCommands(String[] args) throws InterruptedException {
         switch (args[1]) {
             case "init" -> initializeServer();
-            case "cloud" -> runCloudServer(args);
-            case "edge" -> runEdgeServer(args);
+            case "server" -> runServer(args);
             default -> printUsage();
         }
     }
@@ -177,19 +175,19 @@ public class Main {
     }
 
     // -------------------------
-    // runCloudServer():
-    // Creates server directories if needed, then starts the cloud server.
+    // runServer():
+    // Creates server directories if needed, then starts the server.
     // -------------------------
 
-    private static void runCloudServer(String[] args) throws InterruptedException {
-        int port = cloudPort; // default
+    private static void runServer(String[] args) throws InterruptedException {
+        int port = serverPort; // default
         // Check for -p <port> override
         for (int i = 2; i < args.length; i++) {
             if ("-p".equals(args[i]) && i + 1 < args.length) {
                 port = Integer.parseInt(args[++i]);
             }
         }
-        logger.network("Main", "runCloudServer", "Cloud server starting on port " + port);
+        logger.network("Main", "runServer", "Server starting on port " + port);
 
         Path[] directories = {
                 rootDir.resolve("server").resolve("Programs"),
@@ -198,42 +196,10 @@ public class Main {
         };
 
         try {
-            createDirectories(directories);
-            CloudServer.run(port);
+            verifyDirectories(directories, "runServer");
+            Server.run(port);
         } catch (IOException e) {
-            logger.error("Main", "runCloudServer", "Error running cloud server: " + e.getMessage());
-            System.exit(1);
-        }
-    }
-
-    // -------------------------
-    // runEdgeServer():
-    // runEdgeServer():
-    // (Sometimes used for local dev) Creates server directories if needed, then
-    // starts an edge server.
-    // -------------------------
-    // TODO: In the current usage, "server edge" could be a separate mode, but here
-    // it reuses the same logic. maybe fix later.
-    private static void runEdgeServer(String[] args) throws InterruptedException {
-        int port = edgePort;
-        for (int i = 2; i < args.length; i++) {
-            if ("-p".equals(args[i]) && i + 1 < args.length) {
-                port = Integer.parseInt(args[++i]);
-            }
-        }
-        logger.network("Main", "runEdgeServer", "Edge server starting on port " + port);
-
-        Path[] directories = {
-                rootDir.resolve("server").resolve("Programs"),
-                rootDir.resolve("server").resolve("Input"),
-                rootDir.resolve("server").resolve("Output")
-        };
-
-        try {
-            createDirectories(directories);
-            EdgeServer.run(port);
-        } catch (IOException e) {
-            logger.error("Main", "runEdgeServer", "Error running edge server: " + e.getMessage());
+            logger.error("Main", "runServer", "Error running server: " + e.getMessage());
             System.exit(1);
         }
     }
@@ -242,126 +208,94 @@ public class Main {
     // * CLIENT RELATED COMMANDS
     // -------------------------
     // -------------------------
-    // Processes edge-related commands: initialization, running tasks,
+    // Processes client-related commands: initialization, running tasks,
     // and file operations (send, request, delete, list).
     // -------------------------
 
-    private static void handleEdgeCommands(String[] args) {
+    private static void handleClientCommands(String[] args) {
         switch (args[1]) {
-            case "init" -> initializeEdge();
-            case "remotetask" -> handleEdgeRemoteTask(args);
-            case "upload" -> handleEdgeUpload(args); // TODO: BUNDLE ALL THE FILE OPERATION COMMANDS INTO ONE
-            case "download" -> handleEdgeDownload(args);
-            case "listfiles" -> handleEdgeListFiles(args);
-            case "deletefile" -> handleEdgeDeleteFile(args);
-            case "uploadfolder" -> handleEdgeUploadFolder(args);
-            case "downloadfolder" -> handleEdgeDownloadFolder(args);
-            case "deletefolder" -> handleEdgeDeleteFolder(args);
+            case "init" -> initializeClient();
+            case "runtask" -> handleClientRemoteTask(args);
+            case "upload" -> handleClientUpload(args); // TODO: BUNDLE ALL THE FILE OPERATION COMMANDS INTO ONE
+            case "download" -> handleClientDownload(args);
+            case "listfiles" -> handleClientListFiles(args);
+            case "deletefile" -> handleClientDeleteFile(args);
+            case "uploadfolder" -> handleClientUploadFolder(args);
+            case "downloadfolder" -> handleClientDownloadFolder(args);
+            case "deletefolder" -> handleClientDeleteFolder(args);
             default -> printUsage();
         }
     }
 
     // -------------------------
-    // initializeEdge():
-    // Creates edge directories under <rootDir>/edge/ (Programs, Input, Output),
-    // and checks for .edgeVenv.
+    // initializeClient():
+    // Creates client directories under <rootDir>/client/ (Programs, Input, Output),
+    // and checks for .clientVenv.
     // -------------------------
-    private static void initializeEdge() {
-        logger.network("Main", "initializeEdge", "Edge initializing...");
+    private static void initializeClient() {
+        logger.network("Main", "initializeClient", "Client initializing...");
 
         Path[] directories = {
-                rootDir.resolve("edge").resolve("Programs"),
-                rootDir.resolve("edge").resolve("Input"),
-                rootDir.resolve("edge").resolve("Output")
+                rootDir.resolve("client").resolve("Programs"),
+                rootDir.resolve("client").resolve("Input"),
+                rootDir.resolve("client").resolve("Output")
         };
 
         try {
             createDirectories(directories);
-            logger.success("Main", "initializeEdge", "Edge directories verified.");
+            logger.success("Main", "initializeClient", "Client directories verified.");
 
-            Path venvPath = rootDir.resolve(".edgeVenv");
+            Path venvPath = rootDir.resolve(".clientVenv");
             if (!Files.exists(venvPath)) {
                 throw new IOException("Python virtual environment not found at: " + venvPath);
             }
-            logger.success("Main", "initializeEdge", "Python virtual environment verified.");
+            logger.success("Main", "initializeClient", "Python virtual environment verified.");
 
         } catch (IOException e) {
-            logger.error("Main", "initializeEdge", "Error initializing edge: " + e.getMessage());
+            logger.error("Main", "initializeClient", "Error initializing client: " + e.getMessage());
             System.exit(1);
         }
     }
 
     // -------------------------
-    // Starts the edge client by initializing it with the given arguments
-    // and executing the requested task.
-    // THIS IS A LOCAL CONNECTION
-    // -------------------------
-
-    // private static void runEdge(String[] args) {
-    // System.out.println("Starting edge client...");
-    // edge_logger.log("INFO", "Edge client started.", "EdgeRun", "Initialization",
-    // -1);
-
-    // // Pass the rest of the arguments to EdgeClient
-    // EdgeClient edge = new EdgeClient(java.util.Arrays.copyOfRange(args, 2,
-    // args.length));
-
-    // try {
-    // edge.runTask(); // executes the "executeTask" command
-    // } catch (IOException e) {
-    // System.err.println("Error running edge task: " + e.getMessage());
-    // edge_logger.logError(e.getMessage(), "EdgeRun", "Initialization");
-    // }
-    // }
-
-    // -------------------------
-    // Starts the edge client by initializing it with the given arguments
+    // Starts the client by initializing it with the given arguments
     // and executing the requested task.
     // THIS IS A REMOTE CONNECTION
     // -------------------------
 
-    private static void handleEdgeRemoteTask(String[] args) {
-        // parse arguments
-        String server = null;
-        int port = -1;
-        String location = null; // "cloud" or "edge"
-        String lang = null; // "c", "python", "java", etc.
-        String programName = null;
-        int np = 1;
+    private static void handleClientRemoteTask(String[] args) {
+        // Parse arguments
+        Map<String, String> params = parseArguments(args, 2);
+        String server = params.get("-server");
+        int port = params.containsKey("-p") ? Integer.parseInt(params.get("-p")) : -1;
+        String location = params.containsKey("-l") ? params.get("-l") : "server";
+        String lang = params.containsKey("-lang") ? params.get("-lang") : "null";
+        String programName = params.containsKey("-tn") ? params.get("-tn") : "null";
+        int np = params.containsKey("-np") ? Integer.parseInt(params.get("-np")) : 1;
 
-        for (int i = 2; i < args.length; i++) {
-            switch (args[i]) {
-                case "-server" -> server = args[++i];
-                case "-p" -> port = Integer.parseInt(args[++i]);
-                case "-t" -> location = args[++i];
-                case "-lang" -> lang = args[++i];
-                case "-tn" -> programName = args[++i];
-                case "-np" -> np = Integer.parseInt(args[++i]);
-            }
-        }
-
-        if (server == null || port < 0 || location == null ||
-                lang == null || programName == null) {
-            logger.warning("Main", "handleEdgeRemoteTask",
-                    "Usage: edge remotetask -server <ip> -p <port> -t [cloud|edge] -lang <language> -tn <program> -np <count>");
+        // Validate required parameters:
+        if (server == null || port < 0 || location == null || lang == null || programName == null) {
+            logger.warning("Main", "handleClientRemoteTask",
+                    "Usage: client runtask -server <ip> -p <port> -l [cloud|edge] -lang <language> -tn <program> -np <count>");
             return;
         }
 
-        String[] clientArgs = {
-                "-server", server,
-                "-p", String.valueOf(port),
-                "-t", "edge",
-                "-np", String.valueOf(np),
-                "-tn", programName,
-                "-lang", lang
-        };
+        Map<String, String> clientParams = new HashMap<>();
+        clientParams.put("server", server);
+        clientParams.put("port", String.valueOf(port));
+        clientParams.put("location", location);
+        clientParams.put("lang", lang);
+        clientParams.put("tn", programName);
+        clientParams.put("np", String.valueOf(np));
 
-        EdgeClient client = new EdgeClient(clientArgs);
+        String[] clientArgs = buildClientArgs(clientParams);
+        Client client = new Client(clientArgs);
+
         try {
-            client.runRemoteTask(location, lang, programName, np);
-            logger.success("Main", "handleEdgeRemoteTask", "Remote task complete");
+            client.runTask(location, lang, programName, np);
+            logger.success("Main", "handleClientRemoteTask", "Remote task complete");
         } catch (IOException e) {
-            logger.error("Main", "handleEdgeRemoteTask", "Error executing remote task: " + e.getMessage());
+            logger.error("Main", "handleClientRemoteTask", "Error executing remote task: " + e.getMessage());
         } finally {
             try {
                 client.close(false);
@@ -372,45 +306,41 @@ public class Main {
     }
 
     // -------------------------
-    // Handles the edge upload command by uploading a file to the server.
+    // Handles the client upload command by uploading a file to the server.
     // -------------------------
-    private static void handleEdgeUpload(String[] args) {
-        String server = null;
-        int port = -1;
-        String localFile = null;
-        String remoteFolder = null;
+    private static void handleClientUpload(String[] args) {
 
-        for (int i = 2; i < args.length; i++) {
-            switch (args[i]) {
-                case "-server" -> server = args[++i];
-                case "-p" -> port = Integer.parseInt(args[++i]);
-                case "-local" -> localFile = args[++i];
-                case "-remote" -> remoteFolder = args[++i];
-            }
-        }
+        // Parse arguments
+        Map<String, String> params = parseArguments(args, 2);
+        String server = params.get("-server");
+        int port = params.containsKey("-p") ? Integer.parseInt(params.get("-p")) : -1;
+        String localFile = params.get("-local");
+        String remoteFolder = params.get("-remote");
+        String location = params.containsKey("-l") ? params.get("-l") : "server";
 
+        // Validate required parameters:
         if (server == null || port < 0 || localFile == null || remoteFolder == null) {
-            logger.warning("Main", "handleEdgeUpload",
-                    "Usage: edge upload -server <ip> -p <port> -local <localFile> -remote <remoteFolder>");
+            logger.warning("Main", "handleClientUpload",
+                    "Usage: client upload -server <ip> -p <port> -l [cloud|edge] -local <localFile> -remote <remoteFolder>");
             return;
         }
 
-        String[] clientArgs = {
-                "-server", server,
-                "-p", String.valueOf(port),
-                "-t", "edge",
-                "-np", "1",
-                "-tn", "dummy",
-                "-lang", "c"
-        };
-        EdgeClient client = new EdgeClient(clientArgs);
+        Map<String, String> clientParams = new HashMap<>();
+        clientParams.put("server", server);
+        clientParams.put("port", String.valueOf(port));
+        clientParams.put("location", location);
+        // clientParams.put("local", localFile);
+        // clientParams.put("remote", remoteFolder);
+
+        String[] clientArgs = buildClientArgs(clientParams);
+        Client client = new Client(clientArgs);
 
         try {
             client.uploadFile(localFile, remoteFolder);
-            logger.success("Main", "handleEdgeUpload",
+            logger.success("Main", "handleClientUpload",
                     "Uploaded " + localFile + " to " + remoteFolder + " successfully");
         } catch (IOException e) {
-            logger.error("Main", "handleEdgeUpload", "Error uploading file: " + e.getMessage());
+            logger.error("Main", "handleClientUpload", "Error uploading file: " + e.getMessage());
         } finally {
             try {
                 client.close(false);
@@ -421,47 +351,42 @@ public class Main {
     }
 
     // -------------------------
-    // Handles the edge download command by downloading a file from the server.
+    // Handles the client download command by downloading a file from the server.
     // -------------------------
-    private static void handleEdgeDownload(String[] args) {
-        String server = null;
-        int port = -1;
-        String remoteFolder = null;
-        String fileName = null;
-        String localFolder = null;
+    private static void handleClientDownload(String[] args) {
+        // Parse arguments
+        Map<String, String> params = parseArguments(args, 2);
+        String server = params.get("-server");
+        int port = params.containsKey("-p") ? Integer.parseInt(params.get("-p")) : -1;
+        String location = params.containsKey("-l") ? params.get("-l") : "server";
+        String remoteFolder = params.get("-remote");
+        String localFolder = params.get("-local");
+        String fileName = params.get("-file");
 
-        for (int i = 2; i < args.length; i++) {
-            switch (args[i]) {
-                case "-server" -> server = args[++i];
-                case "-p" -> port = Integer.parseInt(args[++i]);
-                case "-remote" -> remoteFolder = args[++i];
-                case "-file" -> fileName = args[++i];
-                case "-local" -> localFolder = args[++i];
-            }
-        }
-
+        // Validate required parameters:
         if (server == null || port < 0 || remoteFolder == null || fileName == null || localFolder == null) {
-            logger.warning("Main", "handleEdgeDownload",
-                    "Usage: edge download -server <ip> -p <port> -remote <folder> -file <filename> -local <folder>");
+            logger.warning("Main", "handleClientUpload",
+                    "Usage: client download -server <ip> -p <port> -l [cloud|edge] -remote <folder> -file <filename> -local <folder>");
             return;
         }
 
-        String[] clientArgs = {
-                "-server", server,
-                "-p", String.valueOf(port),
-                "-t", "edge",
-                "-np", "1",
-                "-tn", "dummy",
-                "-lang", "c"
-        };
-        EdgeClient client = new EdgeClient(clientArgs);
+        Map<String, String> clientParams = new HashMap<>();
+        clientParams.put("server", server);
+        clientParams.put("port", String.valueOf(port));
+        clientParams.put("location", location);
+        // clientParams.put("local", localFolder);
+        // clientParams.put("remote", remoteFolder);
+        // clientParams.put("file", fileName);
+
+        String[] clientArgs = buildClientArgs(clientParams);
+        Client client = new Client(clientArgs);
 
         try {
             client.downloadFile(remoteFolder, fileName, localFolder);
-            logger.success("Main", "handleEdgeDownload",
+            logger.success("Main", "handleClientDownload",
                     "Downloaded " + fileName + " from " + remoteFolder + " to " + localFolder + " successfully");
         } catch (IOException e) {
-            logger.error("Main", "handleEdgeDownload", "Error downloading file: " + e.getMessage());
+            logger.error("Main", "handleClientDownload", "Error downloading file: " + e.getMessage());
         } finally {
             try {
                 client.close(false);
@@ -472,43 +397,38 @@ public class Main {
     }
 
     // -------------------------
-    // Handles the edge list command by listing files in a remote folder.
+    // Handles the client list command by listing files in a remote folder.
     // -------------------------
-    private static void handleEdgeListFiles(String[] args) {
-        String server = null;
-        int port = -1;
-        String remoteFolder = null;
+    private static void handleClientListFiles(String[] args) {
+        // Parse arguments
+        Map<String, String> params = parseArguments(args, 2);
+        String server = params.get("-server");
+        int port = params.containsKey("-p") ? Integer.parseInt(params.get("-p")) : -1;
+        String location = params.containsKey("-l") ? params.get("-l") : "server";
+        String remoteFolder = params.get("-dir");
 
-        for (int i = 2; i < args.length; i++) {
-            switch (args[i]) {
-                case "-server" -> server = args[++i];
-                case "-p" -> port = Integer.parseInt(args[++i]);
-                case "-dir" -> remoteFolder = args[++i];
-            }
-        }
-
+        // Validate required parameters:
         if (server == null || port < 0 || remoteFolder == null) {
-            logger.warning("Main", "handleEdgeListFiles",
-                    "Usage: edge listfiles -server <ip> -p <port> -dir <remoteFolder>");
+            logger.warning("Main", "handleClientListFiles",
+                    "Usage: client listfiles -server <ip> -p <port> -l [cloud|edge] -dir <remoteFolder>");
             return;
         }
 
-        String[] clientArgs = {
-                "-server", server,
-                "-p", String.valueOf(port),
-                "-t", "edge",
-                "-np", "1",
-                "-tn", "dummy",
-                "-lang", "c"
-        };
-        EdgeClient client = new EdgeClient(clientArgs);
+        Map<String, String> clientParams = new HashMap<>();
+        clientParams.put("server", server);
+        clientParams.put("port", String.valueOf(port));
+        clientParams.put("location", location);
+        // clientParams.put("remote", remoteFolder);
+
+        String[] clientArgs = buildClientArgs(clientParams);
+        Client client = new Client(clientArgs);
 
         try {
-            logger.info("Main", "handleEdgeListFiles",
+            logger.info("Main", "handleClientListFiles",
                     "Listing files in " + remoteFolder + " on server " + server + ":" + port + "...");
             client.listFilesOnServer(remoteFolder);
         } catch (IOException e) {
-            logger.error("Main", "handleEdgeListFiles", "Error listing files: " + e.getMessage());
+            logger.error("Main", "handleClientListFiles", "Error listing files: " + e.getMessage());
         } finally {
             try {
                 client.close(false);
@@ -519,45 +439,40 @@ public class Main {
     }
 
     // -------------------------
-    // Handles the edge deletefile command by deleting a file from the server.
+    // Handles the client deletefile command by deleting a file from the server.
     // -------------------------
-    private static void handleEdgeDeleteFile(String[] args) {
-        String server = null;
-        int port = -1;
-        String folder = null;
-        String fileName = null;
+    private static void handleClientDeleteFile(String[] args) {
+        // Parse arguments
+        Map<String, String> params = parseArguments(args, 2);
+        String server = params.get("-server");
+        int port = params.containsKey("-p") ? Integer.parseInt(params.get("-p")) : -1;
+        String location = params.containsKey("-l") ? params.get("-l") : "server";
+        String remoteFolder = params.get("-folder");
+        String fileName = params.get("-file");
 
-        for (int i = 2; i < args.length; i++) {
-            switch (args[i]) {
-                case "-server" -> server = args[++i];
-                case "-p" -> port = Integer.parseInt(args[++i]);
-                case "-folder" -> folder = args[++i];
-                case "-file" -> fileName = args[++i];
-            }
-        }
-
-        if (server == null || port < 0 || folder == null || fileName == null) {
-            logger.warning("Main", "handleEdgeDeleteFile",
-                    "Usage: edge deletefile -server <ip> -p <port> -folder <remoteFolder> -file <filename>");
+        // Validate required parameters:
+        if (server == null || port < 0 || remoteFolder == null || fileName == null) {
+            logger.warning("Main", "handleClientDeleteFile",
+                    "Usage: client deletefile -server <ip> -p <port>  -l [cloud|edge] -folder <remoteFolder> -file <filename>");
             return;
         }
+        Map<String, String> clientParams = new HashMap<>();
+        clientParams.put("server", server);
+        clientParams.put("port", String.valueOf(port));
+        clientParams.put("location", location);
+        // clientParams.put("remote", remoteFolder);
+        // clientParams.put("file", fileName);
 
-        String[] clientArgs = {
-                "-server", server,
-                "-p", String.valueOf(port),
-                "-t", "edge",
-                "-np", "1",
-                "-tn", "dummy",
-                "-lang", "c"
-        };
-        EdgeClient client = new EdgeClient(clientArgs);
+        String[] clientArgs = buildClientArgs(clientParams);
+        Client client = new Client(clientArgs);
 
         try {
-            client.deleteFileOnServer(folder, fileName);
-            logger.success("Main", "handleEdgeDeleteFile",
-                    "Deleted " + fileName + " from folder " + folder + " on " + server + ":" + port + " successfully");
+            client.deleteFileOnServer(remoteFolder, fileName);
+            logger.success("Main", "handleClientDeleteFile",
+                    "Deleted " + fileName + " from folder " + remoteFolder + " on " + server + ":" + port
+                            + " successfully");
         } catch (IOException e) {
-            logger.error("Main", "handleEdgeDeleteFile", "Error deleting file: " + e.getMessage());
+            logger.error("Main", "handleClientDeleteFile", "Error deleting file: " + e.getMessage());
         } finally {
             try {
                 client.close(false);
@@ -567,46 +482,42 @@ public class Main {
         }
     }
 
+    // TODO: when uploading a folder, it only uploads files not the folder itself,
+    // so it could be an issue when downloading it
     // -------------------------
-    // Handles the edge folder upload command by uploading a folder to the server.
+    // Handles the client folder upload command by uploading a folder to the server.
     // -------------------------
-    private static void handleEdgeUploadFolder(String[] args) {
-        String server = null;
-        int port = -1;
-        String localFolder = null;
-        String remoteFolder = null;
+    private static void handleClientUploadFolder(String[] args) {
+        // Parse arguments
+        Map<String, String> params = parseArguments(args, 2);
+        String server = params.get("-server");
+        int port = params.containsKey("-p") ? Integer.parseInt(params.get("-p")) : -1;
+        String location = params.containsKey("-l") ? params.get("-l") : "server";
+        String remoteFolder = params.get("-remote");
+        String localFolder = params.get("-local");
 
-        for (int i = 2; i < args.length; i++) {
-            switch (args[i]) {
-                case "-server" -> server = args[++i];
-                case "-p" -> port = Integer.parseInt(args[++i]);
-                case "-local" -> localFolder = args[++i];
-                case "-remote" -> remoteFolder = args[++i];
-            }
-        }
-
-        if (server == null || port < 0 || localFolder == null || remoteFolder == null) {
-            logger.warning("Main", "handleEdgeUploadFolder",
-                    "Usage: edge uploadfolder -server <ip> -p <port> -local <localFolder> -remote <remoteFolder>");
+        // Validate required parameters:
+        if (server == null || port < 0 || remoteFolder == null || localFolder == null) {
+            logger.warning("Main", "handleClientUploadFolder",
+                    "Usage: client uploadfolder -server <ip> -p <port> -l [cloud|edge] -remote <folder> -local <folder>");
             return;
         }
+        Map<String, String> clientParams = new HashMap<>();
+        clientParams.put("server", server);
+        clientParams.put("port", String.valueOf(port));
+        clientParams.put("location", location);
+        // clientParams.put("local", localFolder);
+        // clientParams.put("remote", remoteFolder);
 
-        String[] clientArgs = {
-                "-server", server,
-                "-p", String.valueOf(port),
-                "-t", "edge",
-                "-np", "1",
-                "-tn", "dummy",
-                "-lang", "c"
-        };
-        EdgeClient client = new EdgeClient(clientArgs);
+        String[] clientArgs = buildClientArgs(clientParams);
+        Client client = new Client(clientArgs);
 
         try {
             client.uploadFolder(localFolder, remoteFolder);
-            logger.success("Main", "handleEdgeUploadFolder",
+            logger.success("Main", "handleClientUploadFolder",
                     "Uploaded " + localFolder + " to " + remoteFolder + " successfully");
         } catch (IOException e) {
-            logger.error("Main", "handleEdgeUploadFolder", "Error uploading folder: " + e.getMessage());
+            logger.error("Main", "handleClientUploadFolder", "Error uploading folder: " + e.getMessage());
         } finally {
             try {
                 client.close(false);
@@ -617,46 +528,40 @@ public class Main {
     }
 
     // -------------------------
-    // Handles the edge folder download command by downloading a folder from the
+    // Handles the client folder download command by downloading a folder from the
     // server.
     // -------------------------
-    private static void handleEdgeDownloadFolder(String[] args) {
-        String server = null;
-        int port = -1;
-        String remoteFolder = null;
-        String localFolder = null;
+    private static void handleClientDownloadFolder(String[] args) {
+        // Parse arguments
+        Map<String, String> params = parseArguments(args, 2);
+        String server = params.get("-server");
+        int port = params.containsKey("-p") ? Integer.parseInt(params.get("-p")) : -1;
+        String location = params.containsKey("-l") ? params.get("-l") : "server";
+        String remoteFolder = params.get("-remote");
+        String localFolder = params.get("-local");
 
-        for (int i = 2; i < args.length; i++) {
-            switch (args[i]) {
-                case "-server" -> server = args[++i];
-                case "-p" -> port = Integer.parseInt(args[++i]);
-                case "-remote" -> remoteFolder = args[++i];
-                case "-local" -> localFolder = args[++i];
-            }
-        }
-
+        // Validate required parameters:
         if (server == null || port < 0 || remoteFolder == null || localFolder == null) {
-            logger.warning("Main", "handleEdgeDownloadFolder",
-                    "Usage: edge downloadfolder -server <ip> -p <port> -remote <folder> -local <folder>");
+            logger.warning("Main", "handleClientDownloadFolder",
+                    "Usage: client downloadfolder -server <ip> -p <port> -l [cloud|edge] -remote <folder> -local <folder>");
             return;
         }
+        Map<String, String> clientParams = new HashMap<>();
+        clientParams.put("server", server);
+        clientParams.put("port", String.valueOf(port));
+        clientParams.put("location", location);
+        // clientParams.put("local", localFolder);
+        // clientParams.put("remote", remoteFolder);
 
-        String[] clientArgs = {
-                "-server", server,
-                "-p", String.valueOf(port),
-                "-t", "edge",
-                "-np", "1",
-                "-tn", "dummy",
-                "-lang", "c"
-        };
-        EdgeClient client = new EdgeClient(clientArgs);
+        String[] clientArgs = buildClientArgs(clientParams);
+        Client client = new Client(clientArgs);
 
         try {
             client.downloadFolder(remoteFolder, localFolder);
-            logger.success("Main", "handleEdgeDownloadFolder",
+            logger.success("Main", "handleClientDownloadFolder",
                     "Downloaded " + remoteFolder + " to " + localFolder + " successfully");
         } catch (IOException e) {
-            logger.error("Main", "handleEdgeDownloadFolder", "Error downloading folder: " + e.getMessage());
+            logger.error("Main", "handleClientDownloadFolder", "Error downloading folder: " + e.getMessage());
         } finally {
             try {
                 client.close(false);
@@ -667,43 +572,39 @@ public class Main {
     }
 
     // -------------------------
-    // Handles the edge folder delete command by deleting a folder from the server.
+    // Handles the client folder delete command by deleting a folder from the
+    // server.
     // -------------------------
-    private static void handleEdgeDeleteFolder(String[] args) {
-        String server = null;
-        int port = -1;
-        String folder = null;
+    private static void handleClientDeleteFolder(String[] args) {
 
-        for (int i = 2; i < args.length; i++) {
-            switch (args[i]) {
-                case "-server" -> server = args[++i];
-                case "-p" -> port = Integer.parseInt(args[++i]);
-                case "-folder" -> folder = args[++i];
-            }
-        }
+        // Parse arguments
+        Map<String, String> params = parseArguments(args, 2);
+        String server = params.get("-server");
+        int port = params.containsKey("-p") ? Integer.parseInt(params.get("-p")) : -1;
+        String location = params.containsKey("-l") ? params.get("-l") : "server";
+        String remoteFolder = params.get("-folder");
 
-        if (server == null || port < 0 || folder == null) {
-            logger.warning("Main", "handleEdgeDeleteFolder",
-                    "Usage: edge deletefolder -server <ip> -p <port> -folder <folder>");
+        // Validate required parameters:
+        if (server == null || port < 0 || remoteFolder == null) {
+            logger.warning("Main", "handleClientDeleteFolder",
+                    "Usage: client deletefolder -server <ip> -p <port> -l [cloud|edge] -folder <folder>");
             return;
         }
+        Map<String, String> clientParams = new HashMap<>();
+        clientParams.put("server", server);
+        clientParams.put("port", String.valueOf(port));
+        clientParams.put("location", location);
+        // clientParams.put("remote", remoteFolder);
 
-        String[] clientArgs = {
-                "-server", server,
-                "-p", String.valueOf(port),
-                "-t", "edge",
-                "-np", "1",
-                "-tn", "dummy",
-                "-lang", "c"
-        };
-        EdgeClient client = new EdgeClient(clientArgs);
+        String[] clientArgs = buildClientArgs(clientParams);
+        Client client = new Client(clientArgs);
 
         try {
-            client.deleteFolder(folder);
-            logger.success("Main", "handleEdgeDeleteFolder",
-                    "Deleted " + folder + " successfully");
+            client.deleteFolder(remoteFolder);
+            logger.success("Main", "handleClientDeleteFolder",
+                    "Deleted " + remoteFolder + " successfully");
         } catch (IOException e) {
-            logger.error("Main", "handleEdgeDeleteFolder", "Error deleting folder: " + e.getMessage());
+            logger.error("Main", "handleClientDeleteFolder", "Error deleting folder: " + e.getMessage());
         } finally {
             try {
                 client.close(false);
@@ -717,6 +618,7 @@ public class Main {
     // * UTILITY FUNCTIONS
     // -------------------------
 
+    // TODO: Is createDirectories() necessary?
     // -------------------------------------------------------------------------
     // createDirectories(): Creates directories if they don't exist
     // -------------------------------------------------------------------------
@@ -729,24 +631,113 @@ public class Main {
         }
     }
 
+    // TODO: Update this to be more specific
     // -------------------------------------------------------------------------
     // printUsage(): Quick usage instructions for ComFaaS
     // -------------------------------------------------------------------------
     private static void printUsage() {
         System.err.println("Invalid arguments. Usage:");
-        System.err.println("  - Server Init: server init");
-        System.err.println("  - Server Cloud: server cloud [-p <port>]");
-        System.err.println("  - Server Edge: server edge [-p <port>]");
-        System.err.println("  - Edge Init: edge init");
-        System.err.println("  - Edge Remote Task: edge remotetask [args]");
-        System.err.println("  - Edge Upload: edge upload [args]");
-        System.err.println("  - Edge Download: edge download [args]");
-        System.err.println("  - Edge List Files: edge listfiles [args]");
-        System.err.println("  - Edge Delete File: edge deletefile [args]");
-        System.err.println("  - Edge Upload Folder: edge uploadfolder [args]");
-        System.err.println("  - Edge Download Folder: edge downloadfolder [args]");
-        System.err.println("  - Edge Delete Folder: edge deletefolder [args]");
+        System.err.println();
+        System.err.println("  Server Commands:");
+        System.err.println("    server init");
+        System.err.println("        - Initialize server directories and verify Python virtual environment.");
+        System.err.println("    server [cloud|edge (only server for now)] [-p <port>]");
+        System.err
+                .println("        - Run the server on the specified port. (Ensure you have run 'server init' first.)");
+        System.err.println();
+        System.err.println("  Client Commands:");
+        System.err.println("    client init");
+        System.err.println("        - Initialize client directories and verify Python virtual environment.");
+        System.err.println(
+                "    client runtask -server <ip> -p <port> -l [cloud|edge] -lang <language> -tn <program> -np <count>");
+        System.err.println("        - Execute a remote task on the server.");
+        System.err.println(
+                "    client upload -server <ip> -p <port> -l [cloud|edge] -local <localFile> -remote <remoteFolder>");
+        System.err.println("        - Upload a file to the server.");
+        System.err
+                .println(
+                        "    client download -server <ip> -p <port> -l [cloud|edge] -remote <folder> -file <filename> -local <folder>");
+        System.err.println("        - Download a file from the server.");
+        System.err.println("    client listfiles -server <ip> -p <port> -l [cloud|edge] -dir <remoteFolder>");
+        System.err.println("        - List files in a remote folder.");
+        System.err.println(
+                "    client deletefile -server <ip> -p <port> -l [cloud|edge] -folder <remoteFolder> -file <filename>");
+        System.err.println("        - Delete a file on the server.");
+        System.err.println(
+                "    client uploadfolder -server <ip> -p <port> -l [cloud|edge] -local <localFolder> -remote <remoteFolder>");
+        System.err.println("        - Upload a folder to the server.");
+        System.err.println(
+                "    client downloadfolder -server <ip> -p <port> -l [cloud|edge] -remote <folder> -local <folder>");
+        System.err.println("        - Download a folder from the server.");
+        System.err.println("    client deletefolder -server <ip> -p <port> -l [cloud|edge] -folder <folder>");
+        System.err.println("        - Delete a folder on the server.");
         System.exit(1);
+    }
+
+    // Verifies that all given directories exist. If any is missing,
+    // logs an error and exits, instructing the user to run init again.
+    public static void verifyDirectories(Path[] directories, String context) {
+        for (Path dir : directories) {
+            if (!Files.exists(dir)) {
+                logger.error("Main", context,
+                        "Directory " + dir + " does not exist. Please run the init command first.");
+                System.exit(1);
+            }
+        }
+    }
+
+    /// Verify files exists
+    // -------------------------------------------------------------------------
+    public static void verifyFiles(File[] files, String context) {
+        for (File file : files) {
+            if (!file.exists()) {
+                logger.error("Main", context,
+                        "File " + file + " does not exist. Please run the init command first.");
+                System.exit(1);
+            }
+        }
+    }
+
+    // Converts command-line arguments (starting at startIndex) into a map of
+    // flag-value pairs.
+    // For example, given args: {"-server", "1.2.3.4", "-p", "1234"} starting at
+    // index 2,
+    // it will return a map with keys "-server" and "-p" mapped to their values.
+
+    private static Map<String, String> parseArguments(String[] args, int startIndex) {
+        Map<String, String> params = new HashMap<>();
+        for (int i = startIndex; i < args.length - 1; i += 2) {
+            params.put(args[i], args[i + 1]);
+        }
+        return params;
+    }
+
+    // buildClientArgs():
+    // Constructs a client argument array from the given parameters.
+    // Expects keys: "server", "port", "location"; optionally "lang", "tn", "np".
+
+    private static String[] buildClientArgs(Map<String, String> params) {
+        List<String> argsList = new ArrayList<>();
+        argsList.add("-server");
+        argsList.add(params.get("server"));
+        argsList.add("-p");
+        argsList.add(params.get("port"));
+        argsList.add("-l");
+        argsList.add(params.get("location"));
+        // Add task-specific arguments only if they exist.
+        if (params.containsKey("lang")) {
+            argsList.add("-lang");
+            argsList.add(params.get("lang"));
+        }
+        if (params.containsKey("tn")) {
+            argsList.add("-tn");
+            argsList.add(params.get("tn"));
+        }
+        if (params.containsKey("np")) {
+            argsList.add("-np");
+            argsList.add(params.get("np"));
+        }
+        return argsList.toArray(new String[0]);
     }
 
 }

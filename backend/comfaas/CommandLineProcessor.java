@@ -2,22 +2,23 @@
 package comfaas;
 
 // ------------------------------------------
-// * The CommandLineProcessor class processes command-line arguments for the edge client.
-// * It validates and parses the arguments to set the edge client properties.
+// * The CommandLineProcessor class processes command-line arguments for the client.
+// * It validates and parses the arguments to set the client properties.
 // ------------------------------------------
 
 public class CommandLineProcessor {
 
+    // ------------------------------------------
+    // Processes the command-line arguments and sets the client properties.
+    // ------------------------------------------
 
-// ------------------------------------------
-// Processes the command-line arguments and sets the edge client properties.
-// ------------------------------------------
-
-    public static void processArguments(EdgeClient client) {
+    // TODO: Add missing arguments and remove unused ones
+    public static void processArguments(Client client) {
         for (int i = 0; i < client.args.length; i++) {
             switch (client.args[i]) {
                 case "-server" -> {
-                    if (++i < client.args.length) client.server = client.args[i];
+                    if (++i < client.args.length)
+                        client.server = client.args[i];
                     else {
                         System.err.println("Error: Missing value for -server");
                         System.exit(1);
@@ -36,15 +37,15 @@ public class CommandLineProcessor {
                         System.exit(1);
                     }
                 }
-                case "-t" -> {
+                case "-l" -> {
                     if (++i < client.args.length) {
-                        client.type = client.args[i];
-                        if (!client.type.equals("cloud") && !client.type.equals("edge")) {
-                            System.err.println("Error: Invalid value for -t. Must be 'cloud' or 'edge'");
+                        client.location = client.args[i];
+                        if (!client.location.equals("server")) {
+                            System.err.println("Error: Invalid value for -l. Must be 'server'");
                             System.exit(1);
                         }
                     } else {
-                        System.err.println("Error: Missing value for -t");
+                        System.err.println("Error: Missing value for -l");
                         System.exit(1);
                     }
                 }
@@ -62,28 +63,32 @@ public class CommandLineProcessor {
                     }
                 }
                 case "-tn" -> {
-                    if (++i < client.args.length) client.tn = client.args[i];
+                    if (++i < client.args.length)
+                        client.tn = client.args[i];
                     else {
                         System.err.println("Error: Missing value for -tn");
                         System.exit(1);
                     }
                 }
                 case "-lang" -> {
-                    if (++i < client.args.length) client.lang = client.args[i];
+                    if (++i < client.args.length)
+                        client.lang = client.args[i];
                     else {
                         System.err.println("Error: Missing value for -lang");
                         System.exit(1);
                     }
                 }
                 case "-source" -> {
-                    if (++i < client.args.length) client.sourceFolder = client.args[i];
+                    if (++i < client.args.length)
+                        client.sourceFolder = client.args[i];
                     else {
                         System.err.println("Error: Missing value for -source");
                         System.exit(1);
                     }
                 }
                 case "-destination" -> {
-                    if (++i < client.args.length) client.destinationFolder = client.args[i];
+                    if (++i < client.args.length)
+                        client.destinationFolder = client.args[i];
                     else {
                         System.err.println("Error: Missing value for -destination");
                         System.exit(1);
@@ -96,14 +101,19 @@ public class CommandLineProcessor {
             }
         }
 
-        
-        // Validate required arguments
-        if (client.server == null || client.port == -1 ||
-            client.type   == null || client.np   == -1 ||
-            client.tn     == null || client.lang == null) {
-            System.err.println("Error: Missing required arguments. Provide -server, -p, -t, -np, -tn, -lang.");
+        // Validate only the absolutely required arguments.
+        if (client.server == null || client.port == -1 || client.location == null) {
+            System.err.println("Error: Missing required arguments. Provide at least -server, -p, and -l.");
             System.exit(1);
         }
+
+        // Set defaults for optional parameters if they are not provided.
+        if (client.np == -1)
+            client.np = 1;
+        if (client.tn == null)
+            client.tn = "";
+        if (client.lang == null)
+            client.lang = "";
     }
-        
-    }
+
+}

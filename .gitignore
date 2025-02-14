@@ -15,7 +15,7 @@ tests/TestFolder/
 *.jar
 
 
-env.sh
+# env.sh
 
 
 __pycache__/

@@ -647,10 +647,10 @@ public class CoreOperations {
     // Close all streams and sockets
     // ------------------------------------------
     public void close(boolean logFromServer) throws IOException {
-        if (logFromServer) {
-            logger.logEvent(LogLevel.NETWORK, "CoreOperations", "close",
-                    "Closing socket connections...", 0, -1);
-        }
+        // if (logFromServer) {
+        // logger.logEvent(LogLevel.NETWORK, "CoreOperations", "close",
+        // "Closing socket connections...", 0, -1);
+        // }
         if (this.dis != null)
             dis.close();
         if (this.dos != null)

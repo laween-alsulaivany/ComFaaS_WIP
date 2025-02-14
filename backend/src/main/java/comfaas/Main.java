@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -315,9 +316,16 @@ public class Main {
 
         String[] clientArgs = buildClientArgs(clientParams);
         Client client = new Client(clientArgs);
-
+        System.out.println("Client initialized");
+        System.out.println("Client args: " + Arrays.toString(clientArgs));
+        System.out.println("Location: " + location);
+        System.out.println("Lang: " + lang);
+        System.out.println("Program: " + programName);
+        System.out.println("NP: " + np);
         try {
+            System.out.println("Trying to executre remote task...");
             client.runTask(location, lang, programName, np);
+            System.out.println("Remote task complete");
             logger.success("Main", "handleClientRemoteTask", "Remote task complete");
         } catch (IOException e) {
             logger.error("Main", "handleClientRemoteTask", "Error executing remote task: " + e.getMessage());

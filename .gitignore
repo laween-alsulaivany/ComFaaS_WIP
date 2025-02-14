@@ -9,6 +9,8 @@ server/
 LocalDownloads/
 tests/TestFolder/
 
+backend/target/
+*.class
 
 *.log
 *.csv

@@ -212,9 +212,9 @@ public class CoreOperations {
 
         // Create the output file
         File outFile = new File(folder, fileName);
-        if ("edge".equalsIgnoreCase(Main.serverType)) {
-            forwardFileToCloud(outFile);
-        }
+        // if ("edge".equalsIgnoreCase(Main.serverType)) {
+        // forwardFileToCloud(outFile);
+        // }
         // Write the file to the output stream
         try (FileOutputStream fos = new FileOutputStream(outFile)) {
             byte[] buffer = new byte[4096];
@@ -385,7 +385,7 @@ public class CoreOperations {
                 case "server" -> {
                     runProgramOnServer(language, programName, np);
                     if ("edge".equals(Main.serverType)) {
-                        forwardFileToCloud(new File(serverProgramsFolder, programName));
+                        forwardFileToCloud(clientInputFolder, serverProgramsFolder, programName);
                         deleteLocalProgram(programName);
                         logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
                                 "Edge server type was detected", 0, -1);
@@ -582,7 +582,7 @@ public class CoreOperations {
     // * HELPER FUNCTIONS
     // ---------------------------------------------------------
 
-    private void forwardFileToCloud(File localFile) {
+    private void forwardFileToCloud(String localpath, String cloudpath, String programName) {
         // 1) figure out Cloud IP / port
         // e.g. from stored "cloudIP" or parse "Main.cliArgs"
         // Here we show a simplified approach:
@@ -610,6 +610,7 @@ public class CoreOperations {
             cloudPort = 12353;
         }
 
+        File localFile = Paths.get(localpath).resolve(programName).toFile();
         // 2) Connect to cloud
         try (Socket sock = new Socket(cloudIP, cloudPort);
                 DataOutputStream cloudDos = new DataOutputStream(sock.getOutputStream());
@@ -618,13 +619,7 @@ public class CoreOperations {
             // 3) Send the command
             cloudDos.writeUTF("uploadSingleFile");
 
-            // 4) For simplicity, store on cloud in some folder, e.g. "server/Programs"
-            String destinationFolderOnCloud = Main.rootDir
-                    .resolve("server")
-                    .resolve("Programs")
-                    .toString();
-
-            cloudDos.writeUTF(destinationFolderOnCloud);
+            cloudDos.writeUTF(cloudpath);
             cloudDos.writeUTF(localFile.getName());
 
             long fileSize = localFile.length();
@@ -639,7 +634,7 @@ public class CoreOperations {
 
             // 5) Read response from the cloud
             String resp = cloudDis.readUTF();
-            // System.out.println("Forwarded file to Cloud. Response: " + resp);
+            System.out.println("Forwarded file to Cloud. Response: " + resp);
 
         } catch (IOException e) {
             System.err.println("Failed to forward file to Cloud: " + e.getMessage());

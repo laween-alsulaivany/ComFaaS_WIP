@@ -64,9 +64,9 @@ public class Client extends CoreOperations {
                 rootDir.resolve("client").resolve("Output")
         };
 
-        System.out.println("Programs: " + directories[0]);
-        System.out.println("Input: " + directories[1]);
-        System.out.println("Output: " + directories[2]);
+        // System.out.println("Programs: " + directories[0]);
+        // System.out.println("Input: " + directories[1]);
+        // System.out.println("Output: " + directories[2]);
         Main.verifyDirectories(directories, "Client Constructor");
 
         // Connect to the server
@@ -100,12 +100,13 @@ public class Client extends CoreOperations {
 
     public void runTask(String location, String language, String programName, int np) throws IOException {
         // 1) Send the command
-        System.out
-                .println("Executing task: Location=" + location + ", Language=" + language + ", Program=" + programName
-                        + ", Processes=" + np);
+        // System.out
+        // .println("Executing task: Location=" + location + ", Language=" + language +
+        // ", Program=" + programName
+        // + ", Processes=" + np);
 
         dos.writeUTF("runTask");
-        System.out.println("writing runTask");
+        // System.out.println("writing runTask");
         logger.info("Client", "runTask", "Executing task: " +
                 "Location=" + location + ", Language=" + language + ", Program=" + programName + ", Processes=" + np);
         // 2) Send parameters
@@ -113,14 +114,14 @@ public class Client extends CoreOperations {
         dos.writeUTF(language); // e.g. "c" or "python"
         dos.writeUTF(programName); // e.g. "WaitFor3Seconds.c"
         dos.writeInt(np); // number of processes
-        System.out.println("Sent task parameters");
+        // System.out.println("Sent task parameters");
 
         // 3) Read the server response
         String response;
-        System.out.println("Reading server response: ");
+        // System.out.println("Reading server response: ");
         try {
             response = dis.readUTF();
-            System.out.println("Server response: " + response);
+            // System.out.println("Server response: " + response);
         } catch (EOFException e) {
             throw new IOException("Server closed connection unexpectedly", e);
         }

@@ -10,8 +10,8 @@ LocalDownloads/
 tests/TestFolder/
 
 backend/target/
-*.class
 
+*.class
 *.log
 *.csv
 *.jar

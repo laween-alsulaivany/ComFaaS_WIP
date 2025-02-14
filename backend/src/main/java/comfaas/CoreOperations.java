@@ -107,10 +107,10 @@ public class CoreOperations {
         dis.readFully(jsonBuf);
         String jsonString = new String(jsonBuf);
 
-        System.out.println("Received JSON: " + jsonString);
+        // System.out.println("Received JSON: " + jsonString);
 
         // Save the JSON to a file (append mode)
-        java.nio.file.Path logFile = java.nio.file.Paths.get(serverOutputFolder, "heartbeat_logs.json");
+        java.nio.file.Path logFile = java.nio.file.Paths.get(serverOutputFolder, "ip.json");
         try {
             java.nio.file.Files.write(
                     logFile,
@@ -131,7 +131,8 @@ public class CoreOperations {
             }
             int port = obj.optInt("port", -1);
             long ts = System.currentTimeMillis();
-            System.out.println("Edge ID: " + edgeIdReceived + ", IP: " + ip + ", Port: " + port + ", Timestamp: " + ts);
+            // System.out.println("Edge ID: " + edgeIdReceived + ", IP: " + ip + ", Port: "
+            // + port + ", Timestamp: " + ts);
             // Build EdgeInfo with received id; Server.storeEdgeInfo will reassign it if
             // necessary
             EdgeInfo info = new EdgeInfo(edgeIdReceived, ip, port, ts);
@@ -283,7 +284,7 @@ public class CoreOperations {
         // TODO: IT CANNOT SEE THE DIRECTORY, FIX IT
         Main.verifyDirectories(new Path[] { Paths.get(sourceFolder) }, "CoreOperations.handleDeleteSingleFile()");
         Main.verifyFiles(new File[] { fileToDelete }, "CoreOperations.handleDeleteSingleFile()");
-        System.out.println("fileToDelete: " + fileToDelete);
+        // System.out.println("fileToDelete: " + fileToDelete);
 
         // if (!Files.exists(filePath)) {
         // logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleDeleteSingleFile",
@@ -585,8 +586,29 @@ public class CoreOperations {
         // 1) figure out Cloud IP / port
         // e.g. from stored "cloudIP" or parse "Main.cliArgs"
         // Here we show a simplified approach:
-        String cloudIP = "127.0.0.1";
-        int cloudPort = 12353;
+        // String cloudIP = "127.0.0.1";
+        // int cloudPort = 12353;
+
+        String cloudIP = null;
+        int cloudPort = -1;
+        for (int i = 0; i < Main.cliArgs.length; i++) {
+            if (Main.cliArgs[i].equals("-cloudIP") && i + 1 < Main.cliArgs.length) {
+                cloudIP = Main.cliArgs[i + 1];
+            }
+            if (Main.cliArgs[i].equals("-cloudPort") && i + 1 < Main.cliArgs.length) {
+                cloudPort = Integer.parseInt(Main.cliArgs[i + 1]);
+            }
+        }
+        if (cloudIP == null) {
+            try {
+                cloudIP = java.net.InetAddress.getLocalHost().getHostAddress();
+            } catch (Exception e) {
+                cloudIP = "127.0.0.1";
+            }
+        }
+        if (cloudPort == -1) {
+            cloudPort = 12353;
+        }
 
         // 2) Connect to cloud
         try (Socket sock = new Socket(cloudIP, cloudPort);
@@ -617,7 +639,7 @@ public class CoreOperations {
 
             // 5) Read response from the cloud
             String resp = cloudDis.readUTF();
-            System.out.println("Forwarded file to Cloud. Response: " + resp);
+            // System.out.println("Forwarded file to Cloud. Response: " + resp);
 
         } catch (IOException e) {
             System.err.println("Failed to forward file to Cloud: " + e.getMessage());

@@ -3,6 +3,8 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
 import subprocess
 import threading
+import shutil
+import sys
 
 app = Flask(__name__)
 
@@ -11,9 +13,19 @@ UPLOAD_FOLDER = "frontend/uploads"
 LOG_FOLDER = "frontend/logs"
 OUTPUT_FOLDER = "frontend/outputs"
 
+frontend_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.join(frontend_dir, "..")
+uploads_dir = os.path.join(project_root, "frontend", "uploads")
+server_programs_dir = os.path.join(project_root, "server", "Programs")
+server_output_dir = os.path.join(project_root, "server", "output")
+client_output_dir = os.path.join(project_root, "client", "output")
+
+jar_path = os.path.join(project_root, "ComFaaS.jar")
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(LOG_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
 
 def get_unique_filename(filepath):
     # Helper: if filepath exists, add numerical postfix for uniqueness.
@@ -24,6 +36,7 @@ def get_unique_filename(filepath):
         unique_path = f"{base}_{counter}{ext}"
         counter += 1
     return unique_path
+
 
 @app.route("/start", methods=["POST"])
 def start_execution():
@@ -44,11 +57,11 @@ def start_execution():
                 script_dir = os.path.join(frontend_dir, "..", "scripts")
                 if os.name == "nt":
                     # Windows: use the bat file.
-                    script_path = os.path.join(script_dir, "runedgeserver.bat")
+                    script_path = os.path.join(script_dir, "runserver.bat")
                     command = ["cmd.exe", "/c", script_path]
                 else:
                     # Unix/WSL: use the sh file.
-                    script_path = os.path.join(script_dir, "runedgeserver.sh")
+                    script_path = os.path.join(script_dir, "runserver.sh")
                     command = ["sh", script_path]
                 subprocess.Popen(command)
                 app.server_started = True
@@ -61,42 +74,66 @@ def start_execution():
     time.sleep(2)
 
     def run_remote_task(file):
-        # Determine the language based on the file's extension.
+        # Determine project root and prepare directories.
+        # frontend_dir = os.path.dirname(os.path.abspath(__file__))
+        # project_root = os.path.join(frontend_dir, "..")
+        # uploads_dir = os.path.join(project_root, "frontend", "uploads")
+        # server_programs_dir = os.path.join(project_root, "server", "Programs")
+        # server_output_dir = os.path.join(project_root, "server", "output")
+        # client_output_dir = os.path.join(project_root, "client", "output")
+
+        # Define source and destination paths.
+        source_file = os.path.join(uploads_dir, file)
+        dest_file = os.path.join(server_programs_dir, file)
+
+        # Instead of copying, use the jar command to upload the file.
+        # jar_path = os.path.join(project_root, "ComFaaS.jar")
+        upload_command = [
+            "java", "-jar", jar_path,
+            "client", "upload",
+            "-server", "127.0.0.1",
+            "-p", "12353",
+            "-l", "server",
+            "-local", source_file,
+            "-remote", dest_file
+        ]
+        # check if server is running, if not, start the server
+        for attempt in range(3):
+            if app.server_started == False:
+                try:
+                    start_server_once()
+                except:
+                    attempt += 1
+                if attempt == 3:
+                    print("Server did not start")
+                    break
+            elif (app.server_started == True):
+                # ✅ Execute the upload command.
+                subprocess.run(upload_command, check=True)
+
+        # Run the program, capturing terminal output.
         ext = os.path.splitext(file)[1].lower()
         if ext == ".py":
-            lang = "python"
-        elif ext == ".c":
-            lang = "c"
-        elif ext == ".java":
-            lang = "java"
+            execution_command = [sys.executable, dest_file]
         else:
-            lang = "unknown"
+            execution_command = [dest_file]
 
-        # Compute the project root (assumes app.py is in frontend/).
-        frontend_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.join(frontend_dir, "..")
-        # jar_path = os.path.join(project_root, "ComFaaS.jar")
-        jar_path = "../ComFaaS.jar"
+        process = subprocess.Popen(
+            execution_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        stdout, _ = process.communicate()
 
-        # Build the remotetask command.
-        command = [
-            "java", "-jar", jar_path,
-            "edge", "remotetask",
-            "-server", "127.0.0.1", "-p", "12354",
-            "-t", "cloud", "-np", "1",
-            "-tn", file, "-lang", lang
-        ]
-        # Define output and log file paths.
-        output_file_path = os.path.join(OUTPUT_FOLDER, f"{file}.txt")
-        output_file_path = get_unique_filename(output_file_path)
-        log_file = os.path.join(LOG_FOLDER, f"{file}.log")
-        
-        with open(log_file, "w") as log, open(output_file_path, "w") as out:
-            log.write("Executing command: " + " ".join(command) + "\n")
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-            stdout, _ = process.communicate()
+        # Save output into server/output, filename based on the application name.
+        output_filename = f"{os.path.splitext(file)[0]}.txt"
+        output_file_path = os.path.join(server_output_dir, output_filename)
+        with open(output_file_path, "w") as out:
             out.write(stdout)
-            log.write(stdout)
+
+        # Copy the output file from server/output to client/output.
+        client_output_file = os.path.join(OUTPUT_FOLDER, output_filename)
+        shutil.copy(output_file_path, client_output_file)
+
+        # Log execution details (optional)
+        log_file = os.path.join(LOG_FOLDER, f"{file}.log")
         with open(log_file, "a") as log:
             log.write("\nExecution completed")
 
@@ -140,60 +177,6 @@ def run_application():
 
     # ✅ Ensure this renders
     return render_template("execution.html", selected_files=selected_files)
-
-
-# @app.route("/start", methods=["POST"])
-# def start_execution():
-#     """Run the selected application concurrently in background threads."""
-#     selected_files = request.json.get("selected_files", [])
-#     if not selected_files:
-#         return jsonify({"status": "error", "message": "No files selected"}), 400
-
-#     def run_task(file):
-#         # Construct full paths for file, log, and (optionally) output.
-#         file_path = os.path.join(UPLOAD_FOLDER, file)
-#         log_file = os.path.join(LOG_FOLDER, f"{file}.log")
-#         # (Optional) Define an output file path if needed:
-#         # output_file = os.path.join(OUTPUT_FOLDER, f"{file}_output.txt")
-
-#         try:
-#             with open(log_file, "w") as log:
-#                 # Compute the absolute path of the scripts directory.
-#                 # This assumes app.py is in frontend/ and scripts/ is at the project root.
-#                 frontend_dir = os.path.dirname(os.path.abspath(__file__))
-#                 script_dir = os.path.join(frontend_dir, "..", "scripts")
-#                 if os.name == "nt":
-#                     # Windows: use cmd.exe to run the bat file.
-#                     script_path = os.path.join(script_dir, "runcloudserver.bat")
-#                     command = ["cmd.exe", "/c", script_path, file_path]
-#                 else:
-#                     # Unix/WSL: use sh to run the shell script.
-#                     script_path = os.path.join(script_dir, "runcloudserver.sh")
-#                     command = ["sh", script_path, file_path]
-
-#                 # Log the command for debugging purposes.
-#                 log.write(f"Executing command: {command}\n")
-#                 process = subprocess.Popen(command, stdout=log, stderr=log)
-#                 process.wait()  # Wait for the process to complete.
-#             # Append termination message to log after process finishes.
-#             with open(log_file, "a") as log:
-#                 log.write("\nExecution completed")
-#             # Optionally, if your task produces an output file, you could move or copy it
-#             # into the OUTPUT_FOLDER here.
-#         except Exception as e:
-#             with open(log_file, "a") as log:
-#                 log.write(f"\nError: {str(e)}")
-
-#     # Launch a background thread for each selected file.
-#     for file in selected_files:
-#         thread = threading.Thread(target=run_task, args=(file,))
-#         thread.start()
-
-#     # Immediately return a success response.
-#     results = {file: "Started" for file in selected_files}
-#     return jsonify({"status": "success", "message": "Execution started", "results": results})
-
-
 
 
 @app.route("/logs/<filename>")

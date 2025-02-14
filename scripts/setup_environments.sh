@@ -79,6 +79,7 @@ setup_directories "client"
 # 4. Set up Python virtual environments
 # --------------------------------------------------------------------------------
 setup_virtualenv() {
+    # TODO: Think about removing the client venv
     local ENV_PATH="$1"
     log "Setting up Python virtual environment: $ENV_PATH..."
 
@@ -133,4 +134,4 @@ log "Setup and initialization completed successfully."
 
 # Print out where the virtual environments were created
 echo "[INFO] Server VENV: $SERVER_VENV"
-echo "[INFO] Client VENV:   $Client_VENV"
+echo "[INFO] Client VENV:   $CLIENT_VENV"

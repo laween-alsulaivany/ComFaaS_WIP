@@ -1,13 +1,13 @@
-package comfaas ;
+package comfaas;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 public abstract class AbstractAlgo {
     // Instance dictionaries for IP addresses and FaaS entries.
     protected Map<String, String> ipDictionary;
     protected Map<String, String> faasDictionary;
-    
+
     // Node type: should be either "cloud" or "edge".
     protected String node;
 
@@ -26,6 +26,9 @@ public abstract class AbstractAlgo {
         }
         // Initialize the FaaS dictionary.
         this.faasDictionary = new HashMap<>();
+        System.out.println("AbstractAlgo constructor: " + node);
+        System.out.println("IPs: " + ipDictionary);
+        System.out.println("FaaS: " + faasDictionary);
     }
 
     /**
@@ -41,7 +44,8 @@ public abstract class AbstractAlgo {
     public abstract void faasUpdate();
 
     /**
-     * Looks up the provided file name in the FaaS dictionary, validates its existence,
+     * Looks up the provided file name in the FaaS dictionary, validates its
+     * existence,
      * and returns a random IP address from ipDictionary.
      *
      * @param faasFileName The file name used to look up in the FaaS dictionary.

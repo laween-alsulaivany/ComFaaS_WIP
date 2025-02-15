@@ -8,7 +8,10 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,6 +42,8 @@ public class Server extends CoreOperations {
     private static ExecutorService executor = null;
     private static int shutdownTimeoutSec = Main.shutdownTimeout > 0 ? Main.shutdownTimeout : 30;
 
+    private AbstractAlgo algo;
+
     // ------------------------------------------
     // Default constructor, if needed.
     // ------------------------------------------
@@ -58,6 +63,14 @@ public class Server extends CoreOperations {
         this.dos = new DataOutputStream(clientSocket.getOutputStream());
         logger.logEvent(LogLevel.SUCCESS, "Server", "Connection",
                 "Server Connection established with client.", 0, -1);
+        String[] initialIPs = getUniqueIPs();
+        System.err.println("Initial IPs: " + Arrays.toString(initialIPs));
+        this.algo = new TheAlgo(initialIPs, Main.serverType);
+        System.err.println("Algo: " + algo);
+        this.algo.ipUpdate();
+        System.err.println("IpUpdate has been called");
+        this.algo.faasUpdate();
+        System.err.println("FaasUpdate has been called");
     }
 
     public static synchronized void storeEdgeInfo(EdgeInfo info) {
@@ -223,5 +236,17 @@ public class Server extends CoreOperations {
 
         // Implement the logic to determine if the server is shutting down
         // return false; // Placeholder implementation
+    }
+
+    public static String[] getUniqueIPs() {
+        Set<String> uniqueIPs = new HashSet<>();
+
+        // Iterate over the edgeRegistry and collect unique IP addresses
+        for (EdgeInfo edge : edgeRegistry.values()) {
+            uniqueIPs.add(edge.getIp());
+        }
+
+        // Convert to String array
+        return uniqueIPs.toArray(new String[0]);
     }
 }

@@ -385,7 +385,9 @@ public class CoreOperations {
                 case "server" -> {
                     runProgramOnServer(language, programName, np);
                     if ("edge".equals(Main.serverType)) {
-                        forwardFileToCloud(clientInputFolder, serverProgramsFolder, programName);
+                        // uploadFilefromClientToEdge(serverProgramsFolder, programName);
+                        // autoUploadTaskFile(programName);
+                        forwardFileToCloud(serverProgramsFolder, serverProgramsFolder, programName);
                         deleteLocalProgram(programName);
                         logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
                                 "Edge server type was detected", 0, -1);

@@ -104,7 +104,10 @@ public class Client extends CoreOperations {
         // .println("Executing task: Location=" + location + ", Language=" + language +
         // ", Program=" + programName
         // + ", Processes=" + np);
+        System.err.println(programName);
+        System.out.println("trying to Autoupload task file");
         autoUploadTaskFile(programName);
+        System.out.println("Autoupload task file done");
         dos.writeUTF("runTask");
         // System.out.println("writing runTask");
         logger.info("Client", "runTask", "Executing task: " +
@@ -426,21 +429,19 @@ public class Client extends CoreOperations {
         // Since Main.resolveLocalFile() is used inside uploadFile(), we can pass a
         // relative path.
         String localPath = "client/Input/" + programName;
+        String remoteFolder = "server/Programs";
 
         // Determine the destination folder.
         // This is dynamic; for now both edge and cloud use "server/Programs",
         // but you can modify this logic if different behavior is desired.
-        String remoteFolder;
-        if ("edge".equalsIgnoreCase(Main.serverType)) {
-            remoteFolder = "server/Programs"; // edge server's target folder
-        } else {
-            remoteFolder = "server/Programs"; // cloud server's target folder
+        try {
+            // Call the existing uploadFile() method to perform the upload.
+            uploadFile(localPath, remoteFolder);
+
+        } catch (Exception e) {
+            logger.info("Client", "autoUploadTaskFile",
+                    "Uploading file " + programName + " from " + localPath + " to " + remoteFolder);
         }
 
-        logger.info("Client", "autoUploadTaskFile",
-                "Uploading file " + programName + " from " + localPath + " to " + remoteFolder);
-
-        // Call the existing uploadFile() method to perform the upload.
-        uploadFile(localPath, remoteFolder);
     }
 }

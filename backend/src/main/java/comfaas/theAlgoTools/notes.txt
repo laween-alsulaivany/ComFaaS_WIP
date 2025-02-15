@@ -1,0 +1,3 @@
+Note that the PingUtility works with internal network pings but did not work for external like 1.1.1.1
+It also required a fix to calling ping, the update was made into setup_enviroments.
+

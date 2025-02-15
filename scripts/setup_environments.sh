@@ -137,3 +137,39 @@ log "Setup and initialization completed successfully."
 # Print out where the virtual environments were created
 echo "[INFO] Server VENV: $SERVER_VENV"
 # echo "[INFO] Client VENV:   $CLIENT_VENV"
+
+# --------------------------------------------------------------------------------
+# 7. fix non-root users ability to call ping. Important for theAlgo
+# --------------------------------------------------------------------------------
+
+PING_PATH=$(which ping)
+if [ -z "$PING_PATH" ]; then
+    echo "Error: ping binary not found."
+    exit 1
+fi
+
+echo "Found ping at: $PING_PATH"
+
+# Check if the capability is already set
+CURRENT_CAP=$(getcap "$PING_PATH")
+if [[ "$CURRENT_CAP" == *"cap_net_raw+ep"* || "$CURRENT_CAP" == *"cap_net_raw=ep"* ]]; then
+    echo "Capability cap_net_raw+ep/cap_net_raw=ep is already set on $PING_PATH."
+else
+    # Grant the CAP_NET_RAW capability to the ping binary
+    echo "Setting capabilities on $PING_PATH..."
+    sudo setcap cap_net_raw+ep "$PING_PATH"
+    if [ $? -ne 0 ]; then
+        echo "Failed to set capabilities on $PING_PATH."
+        exit 1
+    fi
+
+    # Verify the capability was set
+    CURRENT_CAP=$(getcap "$PING_PATH")
+    echo "Capability set on $PING_PATH: $CURRENT_CAP"
+fi
+
+echo "Non-root users should now be able to use ping."
+
+# --------------------------------------------------------------------------------
+# Finished
+# --------------------------------------------------------------------------------

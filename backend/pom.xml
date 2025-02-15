@@ -76,6 +76,16 @@
       </executions>
     </plugin>
   </plugins>
+    <build>
+    <resources>
+        <resource>
+            <directory>src/main/python</directory>
+            <includes>
+                <include>geminiAIEngine.py</include>
+            </includes>
+        </resource>
+    </resources>
+    </build>
 </build>
 
 </project>

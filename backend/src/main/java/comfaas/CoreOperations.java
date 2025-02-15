@@ -335,6 +335,19 @@ public class CoreOperations {
         String programName = dis.readUTF();
         int np = dis.readInt();
 
+        // Compute metrics to pass to the FaaS update:
+        double availableCpu = comfaas.theAlgoTools.CpuAvailability.getCpuAvailability();
+        double freeMemory = comfaas.theAlgoTools.MemoryUtility.getFreeMemoryInMB();
+        // Determine the file size of the FaaS application (assumed to be in the
+        // serverProgramsFolder)
+        File programFile = new File(serverProgramsFolder, programName);
+        double fileSize = programFile.exists() ? programFile.length() : 0;
+
+        // Pass all required metrics to the algo via faasUpdate.
+        // (This call will deliver the FaaS application name along with its CPU, memory,
+        // and fileSize info.)
+        algo.faasUpdate(programName, availableCpu, freeMemory, fileSize);
+
         if (null == location) {
             System.err.println("Invalid location for executeTask: " + location);
         } else

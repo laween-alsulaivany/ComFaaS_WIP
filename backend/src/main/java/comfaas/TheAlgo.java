@@ -11,7 +11,6 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -51,23 +50,49 @@ public class TheAlgo extends AbstractAlgo {
             return;
         }
         String ipFilePath = serverDir + "/Output/ip.json";
+
         try {
-            String content = new String(Files.readAllBytes(Paths.get(ipFilePath)), StandardCharsets.UTF_8);
-            // Assume ip.json contains a JSON array of IP strings.
-            JSONArray jsonArray = new JSONArray(content);
-            for (int i = 0; i < jsonArray.length(); i++) {
-                String ip = jsonArray.getString(i);
-                if (!ipDictionary.containsKey(ip)) {
-                    ipDictionary.put(ip, ip);
+            // Read file line-by-line because each heartbeat is written as a separate JSON
+            // object.
+            List<String> lines = Files.readAllLines(Paths.get(ipFilePath), StandardCharsets.UTF_8);
+            for (String line : lines) {
+                line = line.trim();
+                if (!line.isEmpty()) {
+                    try {
+                        JSONObject obj = new JSONObject(line);
+                        String ip = obj.optString("ip", null);
+                        if (ip != null && !ipDictionary.containsKey(ip)) {
+                            ipDictionary.put(ip, ip);
+                        }
+                    } catch (org.json.JSONException e) {
+                        System.err.println("Error parsing a line in ip.json: " + e.getMessage());
+                    }
                 }
             }
             System.out.println("IP dictionary updated with new entries from ip.json.");
         } catch (IOException e) {
             System.err.println("Error reading ip.json: " + e.getMessage());
-        } catch (JSONException e) {
-            System.err.println("Error parsing ip.json: " + e.getMessage());
         }
     }
+
+    // try {
+    // String content = new String(Files.readAllBytes(Paths.get(ipFilePath)),
+    // StandardCharsets.UTF_8);
+    // // Assume ip.json contains a JSON array of IP strings.
+    // JSONArray jsonArray = new JSONArray(content);
+    // for (int i = 0; i < jsonArray.length(); i++) {
+    // String ip = jsonArray.getString(i);
+    // if (!ipDictionary.containsKey(ip)) {
+    // ipDictionary.put(ip, ip);
+    // }
+    // }
+    // System.out.println("IP dictionary updated with new entries from ip.json.");
+    // } catch (IOException e) {
+    // System.err.println("Error reading ip.json: " + e.getMessage());
+    // } catch (JSONException e) {
+    // System.err.println("Error parsing ip.json: " + e.getMessage());
+    // }
+    // }
 
     /**
      * Reads "bench.json" from $SERVER_DIR/Output and updates faasDictionary

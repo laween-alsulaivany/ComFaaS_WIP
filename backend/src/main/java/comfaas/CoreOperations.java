@@ -96,7 +96,8 @@ public class CoreOperations {
      * Also appends the received JSON to a log file in the server output folder.
      */
     private void handleHeartbeat() throws IOException {
-        System.out.println("Received heartbeat from edge");
+        // System.out.println("Received heartbeat from edge");
+        logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat", "Received heartbeat from edge", 0, -1);
         int jsonLen = dis.readInt();
         if (jsonLen <= 0) {
             dos.writeUTF("ERR: Invalid JSON length");
@@ -123,38 +124,20 @@ public class CoreOperations {
 
         try {
             JSONObject obj = new JSONObject(jsonString);
-            // String edgeIdReceived = obj.optString("edge_id", "unknown");
-            // int edgeIdReceived = obj.optInt("edge_id", -1);
-            // String ip = obj.optString("ip", socket.getInetAddress().getHostAddress());
-            // if ("unknown".equalsIgnoreCase(ip)) {
-            // ip = socket.getInetAddress().getHostAddress();
-            // }
-            // int port = obj.optInt("port", -1);
-            // long ts = System.currentTimeMillis();
-            // // System.out.println("Edge ID: " + edgeIdReceived + ", IP: " + ip + ", Port:
-            // "
-            // // + port + ", Timestamp: " + ts);
-            // // Build EdgeInfo with received id; Server.storeEdgeInfo will reassign it if
-            // // necessary
-            // EdgeInfo info = new EdgeInfo(edgeIdReceived, ip, port, ts);
-
+            // Ignore the incoming edge_id by forcing it to -1.
+            int edgeIdReceived = -1;
             String ip = obj.optString("ip", socket.getInetAddress().getHostAddress());
             if ("unknown".equalsIgnoreCase(ip)) {
                 ip = socket.getInetAddress().getHostAddress();
             }
             int port = obj.optInt("port", -1);
-            long ts = System.currentTimeMillis();
-            // Ignore the incoming edge_id and let the cloud assign one.
-            EdgeInfo info = new EdgeInfo(-1, ip, port, ts);
+            EdgeInfo info = new EdgeInfo(edgeIdReceived, ip, port);
 
-            // Store it in the Server's registry
+            // Store it in the Server's registry (this will assign a new unique edge ID)
             Server.storeEdgeInfo(info);
-
-            // logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat",
-            // "Heartbeat from edge_id=" + edgeIdReceived + ", ip=" + ip + ", port=" + port,
-            // 0, -1);
             logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat",
                     "Stored EdgeInfo in Server registry", 0, -1);
+
             // Respond
             dos.writeUTF("OK");
             dos.flush();
@@ -165,45 +148,6 @@ public class CoreOperations {
             dos.flush();
         }
     }
-
-    // public void manageRequests() throws IOException, InterruptedException {
-    // while (true) {
-    // String command = dis.readUTF();
-    // if ("done".equals(command)) {
-    // logger.logEvent(LogLevel.INFO, "Server", "manageRequests",
-    // "Client sent 'done'. Exiting request management.", 0, -1);
-    // break;
-    // }
-    // // TODO: Shutdown command is not working properly due commands being sent as
-    // a
-    // // line while readUTF() takes only binary. Fix this.
-    // else if ("shutdownServer".equals(command)) {
-    // logger.logEvent(LogLevel.INFO, "Server", "manageRequests", "Received shutdown
-    // command from client.", 0,
-    // -1);
-
-    // Server.setShutdownFlag();
-
-    // // We'll rely on the outer code to handle shutting down the socket & thread
-    // // pool.
-    // break;
-    // } else {
-    // switch (command) {
-    // case "uploadSingleFile" -> handleUploadSingleFile();
-    // case "downloadSingleFile" -> handleDownloadSingleFile();
-    // case "deleteSingleFile" -> handleDeleteSingleFile();
-    // case "uploadFolder" -> handleUploadFolder();
-    // case "downloadFolder" -> handleDownloadFolder();
-    // case "deleteFolder" -> handleDeleteFolder();
-    // case "listFiles" -> handleListFiles();
-    // case "runTask" -> handleExecuteTask();
-    // default -> logger.logEvent(LogLevel.WARNING, "Server", "manageRequests",
-    // "Unknown command received: " + command, 0, -1);
-    // }
-    // }
-    // }
-
-    // }
 
     // ---------------------------------------------------------
     // * Single File: Upload / Download / Delete

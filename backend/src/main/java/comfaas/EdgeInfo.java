@@ -5,13 +5,11 @@ public class EdgeInfo {
     private int edgeId;
     private String ip;
     private int port;
-    private long lastHeartbeatTimestamp;
 
-    public EdgeInfo(int edgeId, String ip, int port, long lastHeartbeatTimestamp) {
+    public EdgeInfo(int edgeId, String ip, int port) {
         this.edgeId = edgeId;
         this.ip = ip;
         this.port = port;
-        this.lastHeartbeatTimestamp = lastHeartbeatTimestamp;
     }
 
     public int getEdgeId() {
@@ -38,11 +36,4 @@ public class EdgeInfo {
         this.port = port;
     }
 
-    public long getLastHeartbeatTimestamp() {
-        return lastHeartbeatTimestamp;
-    }
-
-    public void setLastHeartbeatTimestamp(long ts) {
-        this.lastHeartbeatTimestamp = ts;
-    }
 }

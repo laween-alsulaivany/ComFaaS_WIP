@@ -6,8 +6,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 
 import comfaas.Logger.LogLevel;
 
@@ -49,7 +47,6 @@ public class EdgeHeartbeat implements Runnable {
                 dos.writeUTF("heartbeat");
 
                 // Build JSON
-                String currentTime = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
                 String localIp = socket.getLocalAddress().getHostAddress();
 
                 String nodeType = "edge";
@@ -61,7 +58,7 @@ public class EdgeHeartbeat implements Runnable {
                           "port": %d,
                           "last_heartbeat": "%s"
                         }
-                        """.formatted(nodeType, edgeId, localIp, localPort, currentTime);
+                        """.formatted(nodeType, edgeId, localIp, localPort);
                 byte[] jsonBytes = jsonString.getBytes();
                 dos.writeInt(jsonBytes.length);
                 dos.write(jsonBytes);

@@ -41,6 +41,9 @@ public class Server extends CoreOperations {
 
     private AbstractAlgo algo;
 
+    static String cloudIP; // fallback
+    static int cloudPort = 12353; // fallback
+
     // ------------------------------------------
     // Default constructor, if needed.
     // ------------------------------------------
@@ -62,12 +65,21 @@ public class Server extends CoreOperations {
                 "Server Connection established with client.", 0, -1);
         String[] initialIPs = getUniqueIPs();
         System.err.println("Initial IPs: " + Arrays.toString(initialIPs));
-        this.algo = new TheAlgo(initialIPs, Main.serverType);
+
+        // Determine effective server type based on cloud IP presence.
+        boolean isCloud = false;
+        for (String ip : initialIPs) {
+            if (ip.equals(cloudIP)) { // Assumes Main.cloudIP is defined.
+                isCloud = true;
+                break;
+            }
+        }
+        String effectiveType = isCloud ? "cloud" : "edge";
+        this.algo = new TheAlgo(initialIPs, effectiveType);
+
         System.err.println("Algo: " + algo);
         this.algo.ipUpdate();
-        System.err.println("IpUpdate has been called");
         this.algo.faasUpdate();
-        System.err.println("FaasUpdate has been called");
     }
 
     /**
@@ -117,8 +129,8 @@ public class Server extends CoreOperations {
                     "Server type is EDGE; starting EdgeResponder thread...", 0, -1);
 
             // Suppose we read from arguments or default:
-            String cloudIP = "127.0.0.1"; // fallback
-            int cloudPort = 12353; // fallback
+            // String cloudIP = "127.0.0.1"; // fallback
+            // int cloudPort = 12353; // fallback
 
             // find them in `args` if you want e.g. -cloudIP <ip> -cloudPort <port>
             // (You can parse them just like you do -p <port>)
@@ -217,14 +229,14 @@ public class Server extends CoreOperations {
     }
 
     // +++ Optionally you can add a cleaner method to remove old edges +++
-    public static void removeStaleEdges(long maxAgeMs) {
-        long now = System.currentTimeMillis();
-        edgeRegistry.forEach((edgeId, edgeInfo) -> {
-            if ((now - edgeInfo.getLastHeartbeatTimestamp()) > maxAgeMs) {
-                edgeRegistry.remove(edgeId);
-            }
-        });
-    }
+    // public static void removeStaleEdges(long maxAgeMs) {
+    // long now = System.currentTimeMillis();
+    // edgeRegistry.forEach((edgeId, edgeInfo) -> {
+    // if ((now - edgeInfo.getLastHeartbeatTimestamp()) > maxAgeMs) {
+    // edgeRegistry.remove(edgeId);
+    // }
+    // });
+    // }
 
     // TODO: Implement this later
     // Called by manageRequests() if we see "shutdownServer"

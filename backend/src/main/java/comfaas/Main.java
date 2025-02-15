@@ -328,7 +328,7 @@ public class Main {
             System.out.println("Remote task complete");
             logger.success("Main", "handleClientRemoteTask", "Remote task complete");
         } catch (IOException e) {
-            logger.error("Main", "handleClientRemoteTask", "Error executing remote task: " + e.getMessage());
+            logger.error("Main", "handleClientRemoteTask", "Error executing remote task: " + e.getStackTrace());
         } finally {
             try {
                 client.close(false);

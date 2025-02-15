@@ -228,6 +228,7 @@ public class CoreOperations {
             logger.logEvent(LogLevel.SUCCESS, "CoreOperations", "handleUploadSingleFile",
                     "File uploaded: " + outFile.getAbsolutePath(), 0, fileSize);
             dos.writeUTF("File uploaded successfully");
+
         } catch (IOException e) {
             logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleUploadSingleFile",
                     "Error uploading file: " + e.getMessage(), 0, -1);

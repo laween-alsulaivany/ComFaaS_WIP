@@ -4,6 +4,7 @@ package comfaas;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -327,8 +328,14 @@ public class Main {
             client.runTask(location, lang, programName, np);
             System.out.println("Remote task complete");
             logger.success("Main", "handleClientRemoteTask", "Remote task complete");
+        } catch (SocketException e) {
+
+            // logger.error("Main", "handleClientRemoteTask", "Error executing remote task:
+            // " + e.getStackTrace());
+            // e.printStackTrace();
         } catch (IOException e) {
             logger.error("Main", "handleClientRemoteTask", "Error executing remote task: " + e.getStackTrace());
+            e.printStackTrace();
         } finally {
             try {
                 client.close(false);

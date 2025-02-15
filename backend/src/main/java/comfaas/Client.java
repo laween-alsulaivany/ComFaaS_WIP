@@ -140,7 +140,7 @@ public class Client extends CoreOperations {
         // System.out.println("Unexpected response: " + response);
         // }
         // expected: "executeTaskComplete" or "OK: Task executed successfully"
-        dos.writeUTF("done");
+        // dos.writeUTF("done");
         dos.flush();
 
     }
@@ -177,7 +177,7 @@ public class Client extends CoreOperations {
                 dos.write(buffer, 0, bytesRead);
             }
         }
-        dos.writeUTF("done");
+        // dos.writeUTF("done");
         dos.flush();
 
         // Optionally read server response (OK/ERR)
@@ -227,7 +227,7 @@ public class Client extends CoreOperations {
         }
         logger.logEvent(LogLevel.SUCCESS, "CoreOperations", "downloadFile",
                 "File downloaded: " + outFile.getAbsolutePath(), 0, fileSize);
-        dos.writeUTF("done");
+        // dos.writeUTF("done");
         dos.flush();
     }
 
@@ -252,7 +252,7 @@ public class Client extends CoreOperations {
                     "Error from server: " + response, 0, -1);
             throw new IOException("Server error: " + response);
         }
-        dos.writeUTF("done");
+        // dos.writeUTF("done");
         dos.flush();
     }
 
@@ -333,7 +333,7 @@ public class Client extends CoreOperations {
                     "Error from server: " + response, 0, -1);
             throw new IOException("Server error: " + response);
         }
-        dos.writeUTF("done");
+        // dos.writeUTF("done");
         dos.flush();
     }
 
@@ -394,7 +394,7 @@ public class Client extends CoreOperations {
                     "Error from server: " + response, 0, -1);
             throw new IOException("Server error: " + response);
         }
-        dos.writeUTF("done");
+        // dos.writeUTF("done");
         dos.flush();
     }
 
@@ -416,7 +416,7 @@ public class Client extends CoreOperations {
                     "Error from server: " + response, 0, -1);
             throw new IOException("Server error: " + response);
         }
-        dos.writeUTF("done");
+        // dos.writeUTF("done");
         dos.flush();
 
     }

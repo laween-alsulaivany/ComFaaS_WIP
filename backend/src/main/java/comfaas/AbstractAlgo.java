@@ -6,24 +6,20 @@ import java.util.HashMap;
 public abstract class AbstractAlgo {
     // Instance dictionaries for IP addresses and FaaS entries.
     protected Map<String, String> ipDictionary;
-    protected Map<String, String> faasDictionary;
+    
+    protected Map<String, double[]> faasDictionary;
     
     // Node type: should be either "cloud" or "edge".
     protected String node;
 
     /**
-     * Constructor.
+     * This needs to be called before connections are established. 
      * 
-     * @param IPs  An array of IP addresses to initialize the IP dictionary.
      * @param node Either "cloud" or "edge".
      */
-    public AbstractAlgo(String[] IPs, String node) {
+    public AbstractAlgo(String node) {
         this.node = node;
         this.ipDictionary = new HashMap<>();
-        for (String ip : IPs) {
-            // Storing each IP in the dictionary. Adjust the key/value as needed.
-            ipDictionary.put(ip, ip);
-        }
         // Initialize the FaaS dictionary.
         this.faasDictionary = new HashMap<>();
     }
@@ -32,7 +28,12 @@ public abstract class AbstractAlgo {
      * Reads "ip.json" from $SERVER_DIR/Output and updates ipDictionary
      * with any new IP addresses.
      */
-    public abstract void ipUpdate();
+    public final synchronized void ipUpdate() {
+        ipUpdateImpl() ;
+    }
+    // implement the core logic of ipUpdate
+    protected abstract void ipUpdateImpl() ;
+
 
     /**
      * Reads "bench.json" from $SERVER_DIR/Output and updates faasDictionary
@@ -45,9 +46,10 @@ public abstract class AbstractAlgo {
      * and returns a random IP address from ipDictionary.
      *
      * @param faasFileName The file name used to look up in the FaaS dictionary.
+     * c
      * @return A random IP address from the IP dictionary.
      */
-    public abstract String get(String faasFileName);
+    public abstract String get(String faasFileName, int np);
 
     /**
      * Closes any threads and sockets that may be running.

@@ -25,11 +25,10 @@ public class TheAlgo extends AbstractAlgo {
     /**
      * Constructor.
      *
-     * @param IPs  An array of IP addresses.
      * @param node Either "cloud" or "edge".
      */
-    public TheAlgo(String[] IPs, String node) {
-        super(IPs, node);
+    public TheAlgo(String node) {
+        super(node);
         this.random = new Random();
         // For demonstration, we initialize an executor with a fixed thread pool.
         this.executor = Executors.newFixedThreadPool(2);
@@ -42,7 +41,7 @@ public class TheAlgo extends AbstractAlgo {
      * with any new IP addresses.
      */
     @Override
-    public void ipUpdate() {
+    protected void ipUpdateImpl() {
         String serverDir = System.getenv("SERVER_DIR");
         if (serverDir == null) {
             System.err.println("SERVER_DIR environment variable not set.");
@@ -85,8 +84,17 @@ public class TheAlgo extends AbstractAlgo {
             JSONObject jsonObject = new JSONObject(content);
             for (String key : jsonObject.keySet()) {
                 if (!faasDictionary.containsKey(key)) {
-                    // Here, we simply store the associated value as a String.
-                    faasDictionary.put(key, jsonObject.getString(key));
+                    // Generate three random double values and normalize them to sum to 1.
+                    double[] weights = new double[3];
+                    weights[0] = Math.random();
+                    weights[1] = Math.random();
+                    weights[2] = Math.random();
+                    double sum = weights[0] + weights[1] + weights[2];
+                    weights[0] /= sum;
+                    weights[1] /= sum;
+                    weights[2] /= sum;
+                    
+                    faasDictionary.put(key, weights);
                 }
             }
             System.out.println("FaaS dictionary updated with new entries from bench.json.");
@@ -97,17 +105,19 @@ public class TheAlgo extends AbstractAlgo {
         }
     }
 
+
     /**
      * Looks up the given FaaS file name in the FaaS dictionary, validates that it exists,
      * and returns a random IP address from the IP dictionary.
      *
      * @param faasFileName The file name used for lookup in the FaaS dictionary.
+     * @param np The number of processes that the faas application needs, 1 if sequential
      * @return A random IP address from ipDictionary.
      * @throws IllegalArgumentException if the faasFileName is not in the faasDictionary.
      * @throws IllegalStateException    if the ipDictionary is empty.
      */
     @Override
-    public String get(String faasFileName) {
+    public String get(String faasFileName, int np) {
         if (!faasDictionary.containsKey(faasFileName)) {
             throw new IllegalArgumentException("FaaS file name not found: " + faasFileName);
         }

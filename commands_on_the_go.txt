@@ -10,7 +10,7 @@ java -jar ComFaaS.jar client runtask -server 192.168.70.10 -p 12353 -l server -n
 
 java -jar ComFaaS.jar client listfiles -server 192.168.70.10 -p 12353 -l server -dir "server/Programs"
 
- java -jar ComFaaS.jar client upload -server 192.168.70.10 -p 12353 -l server -local "client/Input/BigSummation.py" -remote "server/Programs"
+java -jar ComFaaS.jar client upload -server 192.168.70.10 -p 12353 -l server -local "client/Input/BigSummation.py" -remote "server/Programs"
 
 for the edge:
 

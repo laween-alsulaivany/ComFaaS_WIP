@@ -17,13 +17,13 @@ public abstract class AbstractAlgo {
      * @param IPs  An array of IP addresses to initialize the IP dictionary.
      * @param node Either "cloud" or "edge".
      */
-    public AbstractAlgo(String[] IPs, String node) {
+    public AbstractAlgo(String node) {
         this.node = node;
         this.ipDictionary = new HashMap<>();
-        for (String ip : IPs) {
-            // Storing each IP in the dictionary. Adjust the key/value as needed.
-            ipDictionary.put(ip, ip);
-        }
+        // for (String ip : IPs) {
+        //     // Storing each IP in the dictionary. Adjust the key/value as needed.
+        //     ipDictionary.put(ip, ip);
+        // }
         // Initialize the FaaS dictionary.
         this.faasDictionary = new HashMap<>();
         System.out.println("AbstractAlgo constructor: " + node);

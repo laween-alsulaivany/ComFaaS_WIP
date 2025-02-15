@@ -18,7 +18,7 @@ public class TheAlgo extends AbstractAlgo {
     // Executor service for any threads this class might use.
     private ExecutorService executor;
     // A dummy socket field to simulate an open socket.
-    private Socket socket;
+    // private Socket socket;
     // Random instance for selecting a random IP.
     private Random random;
 
@@ -28,13 +28,13 @@ public class TheAlgo extends AbstractAlgo {
      * @param IPs  An array of IP addresses.
      * @param node Either "cloud" or "edge".
      */
-    public TheAlgo(String[] IPs, String node) {
-        super(IPs, node);
+    public TheAlgo(String node) {
+        super(node);
         this.random = new Random();
         // For demonstration, we initialize an executor with a fixed thread pool.
         this.executor = Executors.newFixedThreadPool(2);
         // Initialize socket as null (or create one if needed).
-        this.socket = null;
+        // this.socket = null;
     }
 
     /**
@@ -68,16 +68,6 @@ public class TheAlgo extends AbstractAlgo {
             System.err.println("SERVER_DIR environment variable not set.");
             return;
         }
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         String benchFilePath = serverDir + "/Output/bench.json";
         try {
             String content = new String(Files.readAllBytes(Paths.get(benchFilePath)), StandardCharsets.UTF_8);
@@ -138,14 +128,14 @@ public class TheAlgo extends AbstractAlgo {
         if (executor != null) {
             executor.shutdownNow();
         }
-        // Close the socket if it was opened.
-        if (socket != null) {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                System.err.println("Error closing socket: " + e.getMessage());
-            }
-        }
+        // Close the socket if it was opened./
+        // if (socket != null) {/
+        //     try {
+        //         socket.close();
+        //     } catch (IOException e) {
+        //         System.err.println("Error closing socket: " + e.getMessage());
+        //     }
+        // }
         System.out.println("TheAlgo closed successfully.");
     }
 }

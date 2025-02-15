@@ -10,7 +10,6 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -31,14 +30,12 @@ public class Server extends CoreOperations {
     // A static flag to indicate that we are shutting down
     private static volatile boolean shuttingDown = false;
 
-    // Registry of edges
-
+    // Registry of edges using composite key: "ip:port"
     private static final ConcurrentHashMap<String, EdgeInfo> edgeRegistry = new ConcurrentHashMap<>();
     private static int nextEdgeId = 1;
-    private static Map<String, String> ipToEdgeId = new ConcurrentHashMap<>();
 
-    // The thread pool. We'll create it in run(), store it in a static so we can
-    // shut it down if needed.
+    // The thread pool. We'll create it in run() and store it here so we can shut it
+    // down if needed.
     private static ExecutorService executor = null;
     private static int shutdownTimeoutSec = Main.shutdownTimeout > 0 ? Main.shutdownTimeout : 30;
 
@@ -73,17 +70,24 @@ public class Server extends CoreOperations {
         System.err.println("FaasUpdate has been called");
     }
 
+    /**
+     * Updated storeEdgeInfo: Uses composite key "ip:port" to ensure uniqueness.
+     * If an entry for the same IP and port exists, updates it (preserving the edge
+     * ID);
+     * otherwise assigns a new edge ID.
+     */
     public static synchronized void storeEdgeInfo(EdgeInfo info) {
-        String ip = info.getIp();
-        String edgeKey;
-        // Check if a unique id has been assigned for this ip
-        if (!ipToEdgeId.containsKey(ip)) {
-            ipToEdgeId.put(ip, "edge-" + nextEdgeId++);
+        String key = info.getIp() + ":" + info.getPort();
+        if (edgeRegistry.containsKey(key)) {
+            EdgeInfo existing = edgeRegistry.get(key);
+            // Preserve the existing edge ID and update the record with the latest
+            // heartbeat.
+            info.setEdgeId(existing.getEdgeId());
+            edgeRegistry.put(key, info);
+        } else {
+            info.setEdgeId(nextEdgeId++);
+            edgeRegistry.put(key, info);
         }
-        edgeKey = ipToEdgeId.get(ip);
-        info.setEdgeId(Integer.parseInt(edgeKey.replace("edge-", "")));
-        // Update registry: if key exists, update; otherwise, add new entry.
-        edgeRegistry.put(edgeKey, info);
     }
 
     // ------------------------------------------

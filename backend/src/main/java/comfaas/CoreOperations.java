@@ -124,25 +124,37 @@ public class CoreOperations {
         try {
             JSONObject obj = new JSONObject(jsonString);
             // String edgeIdReceived = obj.optString("edge_id", "unknown");
-            int edgeIdReceived = obj.optInt("edge_id", -1);
+            // int edgeIdReceived = obj.optInt("edge_id", -1);
+            // String ip = obj.optString("ip", socket.getInetAddress().getHostAddress());
+            // if ("unknown".equalsIgnoreCase(ip)) {
+            // ip = socket.getInetAddress().getHostAddress();
+            // }
+            // int port = obj.optInt("port", -1);
+            // long ts = System.currentTimeMillis();
+            // // System.out.println("Edge ID: " + edgeIdReceived + ", IP: " + ip + ", Port:
+            // "
+            // // + port + ", Timestamp: " + ts);
+            // // Build EdgeInfo with received id; Server.storeEdgeInfo will reassign it if
+            // // necessary
+            // EdgeInfo info = new EdgeInfo(edgeIdReceived, ip, port, ts);
+
             String ip = obj.optString("ip", socket.getInetAddress().getHostAddress());
             if ("unknown".equalsIgnoreCase(ip)) {
                 ip = socket.getInetAddress().getHostAddress();
             }
             int port = obj.optInt("port", -1);
             long ts = System.currentTimeMillis();
-            // System.out.println("Edge ID: " + edgeIdReceived + ", IP: " + ip + ", Port: "
-            // + port + ", Timestamp: " + ts);
-            // Build EdgeInfo with received id; Server.storeEdgeInfo will reassign it if
-            // necessary
-            EdgeInfo info = new EdgeInfo(edgeIdReceived, ip, port, ts);
+            // Ignore the incoming edge_id and let the cloud assign one.
+            EdgeInfo info = new EdgeInfo(-1, ip, port, ts);
 
             // Store it in the Server's registry
             Server.storeEdgeInfo(info);
 
+            // logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat",
+            // "Heartbeat from edge_id=" + edgeIdReceived + ", ip=" + ip + ", port=" + port,
+            // 0, -1);
             logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat",
-                    "Heartbeat from edge_id=" + edgeIdReceived + ", ip=" + ip + ", port=" + port, 0, -1);
-
+                    "Stored EdgeInfo in Server registry", 0, -1);
             // Respond
             dos.writeUTF("OK");
             dos.flush();

@@ -51,15 +51,17 @@ public class EdgeHeartbeat implements Runnable {
                 // Build JSON
                 String currentTime = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
                 String localIp = socket.getLocalAddress().getHostAddress();
-                // edgeId = edgeId + 100;
+
+                String nodeType = "edge";
                 String jsonString = """
                         {
+                          "node": "%s",
                           "edge_id": "%d",
                           "ip": "%s",
                           "port": %d,
                           "last_heartbeat": "%s"
                         }
-                        """.formatted(edgeId, localIp, localPort, currentTime);
+                        """.formatted(nodeType, edgeId, localIp, localPort, currentTime);
                 byte[] jsonBytes = jsonString.getBytes();
                 dos.writeInt(jsonBytes.length);
                 dos.write(jsonBytes);

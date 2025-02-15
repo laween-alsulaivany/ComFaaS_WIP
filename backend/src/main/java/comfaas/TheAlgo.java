@@ -1,4 +1,5 @@
 package comfaas;
+
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +44,8 @@ public class TheAlgo extends AbstractAlgo {
      */
     @Override
     public void ipUpdate() {
-        String serverDir = System.getenv("SERVER_DIR");
+        String serverDir = Main.rootDir.resolve("server").toString();
+        // String serverDir = System.getenv("SERVER_DIR");
         if (serverDir == null) {
             System.err.println("SERVER_DIR environment variable not set.");
             return;
@@ -73,7 +75,7 @@ public class TheAlgo extends AbstractAlgo {
      */
     @Override
     public void faasUpdate() {
-        String serverDir = System.getenv("SERVER_DIR");
+        String serverDir = Main.rootDir.resolve("server").toString();
         if (serverDir == null) {
             System.err.println("SERVER_DIR environment variable not set.");
             return;
@@ -98,12 +100,14 @@ public class TheAlgo extends AbstractAlgo {
     }
 
     /**
-     * Looks up the given FaaS file name in the FaaS dictionary, validates that it exists,
+     * Looks up the given FaaS file name in the FaaS dictionary, validates that it
+     * exists,
      * and returns a random IP address from the IP dictionary.
      *
      * @param faasFileName The file name used for lookup in the FaaS dictionary.
      * @return A random IP address from ipDictionary.
-     * @throws IllegalArgumentException if the faasFileName is not in the faasDictionary.
+     * @throws IllegalArgumentException if the faasFileName is not in the
+     *                                  faasDictionary.
      * @throws IllegalStateException    if the ipDictionary is empty.
      */
     @Override

@@ -78,8 +78,8 @@ public class Server extends CoreOperations {
         this.algo = new TheAlgo(initialIPs, effectiveType);
 
         System.err.println("Algo: " + algo);
-        this.algo.ipUpdate();
-        this.algo.faasUpdate();
+        // this.algo.ipUpdate();
+        // this.algo.faasUpdate();
     }
 
     /**

@@ -56,7 +56,6 @@ public class EdgeHeartbeat implements Runnable {
                           "edge_id": "%d",
                           "ip": "%s",
                           "port": %d,
-                          "last_heartbeat": "%s"
                         }
                         """.formatted(nodeType, edgeId, localIp, localPort);
                 byte[] jsonBytes = jsonString.getBytes();

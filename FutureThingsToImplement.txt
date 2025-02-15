@@ -1,0 +1,29 @@
+enforce that a resource must be closed by having your 
+class implement the AutoCloseable interface and then using 
+it in a try-with-resources block. This is the standard Java 
+approach that helps ensure resources are closed automatically. 
+For example:
+public class MyResource implements AutoCloseable {
+    public MyResource() {
+        // Initialize resource
+    }
+
+    public void doSomething() {
+        System.out.println("Using resource...");
+    }
+
+    @Override
+    public void close() {
+        System.out.println("Resource closed.");
+        // Clean up resource
+    }
+    
+    public static void main(String[] args) {
+        try (MyResource res = new MyResource()) {
+            res.doSomething();
+        }
+        // No need to explicitly call res.close()—it's done automatically.
+    }
+}
+
+

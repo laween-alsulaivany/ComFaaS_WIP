@@ -436,24 +436,34 @@ public class CoreOperations {
         long elapsedTime = endTime - startTime;
         int cores = Runtime.getRuntime().availableProcessors();
 
-        System.out.println("This is CPU Average using Time");
         double avgCpuTimeMethod = ProcessCpuUsage.averageCpuUsageUsingTime(startCpuTime, endCpuTime, elapsedTime,
                 cores);
         System.out.println("Average CPU Usage by Time: " + avgCpuTimeMethod);
+        System.out.println("   ");
 
-        System.out.println("This is CPU Average by sampling");
         double avgCpuTimeSampling = ProcessCpuUsage.averageCpuUsageBySampling(5000, 500); // sample for 5 seconds every
-                                                                                          // 500ms
+        // 500ms
         System.out.println("Average CPU Usage by Sampling: " + avgCpuTimeSampling);
+        System.out.println("   ");
 
         System.out.println("This is Max Memory Used");
         double maxMemoryUsed = ProcessMemoryUsage.maxMemoryUsageDuringPeriod(5000, 500); // sample for 5 seconds every
-                                                                                         // 500ms
+        // 500ms
+        System.out.println("   ");
+        System.out.println("====================================================");
+        System.out.println("   ");
         System.out.println("Max Memory Used: " + maxMemoryUsed);
+        System.out.println("   ");
+        System.out.println("====================================================");
+        System.out.println("   ");
 
-        System.out.println("Sampling");
+        System.out.println("====================================================");
+        System.out.println("Sampling Method");
+        System.out.println("====================================================");
         algo.faasUpdate(programName, avgCpuTimeMethod, maxMemoryUsed, fileSize);
-        System.out.println("Time");
+        System.out.println("====================================================");
+        System.out.println("Time Method");
+        System.out.println("====================================================");
         algo.faasUpdate(programName, avgCpuTimeMethod, maxMemoryUsed, fileSize);
 
     }

@@ -31,7 +31,7 @@ public class JavaProgramRunner {
     }
 
     public void runJavaProgram(String className) throws IOException, InterruptedException {
-        ProcessBuilder processBuilder = new ProcessBuilder("java -cp . ", className);
+        ProcessBuilder processBuilder = new ProcessBuilder("java", className);
 
         Process process = processBuilder.start();
 

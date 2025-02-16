@@ -18,78 +18,80 @@ public class EdgeHeartbeat implements Runnable {
     private static final Logger logger = new Logger(Main.getLogFile());
     private final String cloudIP;
     private final int cloudPort;
-    public int edgeId;
     private final int localPort; // the port this edge server is using
-    // int counter = 0;
-
+    private int edgeId = 1; // the ID of this edge server
     private volatile boolean running = true;
 
     public EdgeHeartbeat(String cloudIP, int cloudPort, int edgeId, int localPort) {
         this.cloudIP = cloudIP;
         this.cloudPort = cloudPort;
-        this.edgeId = edgeId;
+        this.edgeId += edgeId;
         this.localPort = localPort;
     }
 
     @Override
     public void run() {
-        while (running && !Server.isShuttingDown()) {
-            Socket socket = null;
-            DataOutputStream dos = null;
-            DataInputStream dis = null;
-            try {
-                // Open a new socket for each heartbeat iteration
-                socket = new Socket(cloudIP, cloudPort);
-                dos = new DataOutputStream(socket.getOutputStream());
-                dis = new DataInputStream(socket.getInputStream());
+        Socket socket = null;
+        DataOutputStream dos = null;
+        DataInputStream dis = null;
+        try {
+            // Open a persistent socket connection
+            socket = new Socket(cloudIP, cloudPort);
+            dos = new DataOutputStream(socket.getOutputStream());
+            dis = new DataInputStream(socket.getInputStream());
+            logger.logEvent(LogLevel.INFO, "EdgeHeartbeat", "run",
+                    "Persistent heartbeat connection established to " + cloudIP + ":" + cloudPort, 0, -1);
 
-                // Send "heartbeat" command
+            // Keep sending heartbeats periodically over the same connection.
+            while (running && !Server.isShuttingDown()) {
+                // Send heartbeat command (if your protocol requires it)
                 dos.writeUTF("heartbeat");
 
-                // Send the node type and this edge's own IP address.
+                // Send node type and local IP
                 String nodeType = "edge";
                 String localIp = socket.getLocalAddress().getHostAddress();
                 dos.writeUTF(nodeType);
-                dos.writeInt(edgeId);
+                dos.writeUTF(localIp);
+                System.out.println("Sent heartbeat: " + nodeType + " with IP " + localIp);
                 dos.flush();
+                logger.logEvent(LogLevel.INFO, "EdgeHeartbeat", "run",
+                        "Sent heartbeat: " + nodeType + " with IP " + localIp, 0, -1);
 
-                // Read response from the server (expecting "OK")
+                // Optionally, read a response from the cloud (if needed)
                 String response;
                 try {
                     response = dis.readUTF();
+                    logger.logEvent(LogLevel.INFO, "EdgeHeartbeat", "run",
+                            "Received response: " + response, 0, -1);
                 } catch (IOException eof) {
-                    response = "OK";
+                    // if the server temporarily doesn’t respond, you can choose to log or ignore it
                 }
-                logger.logEvent(LogLevel.INFO, "EdgeHeartbeat", "run",
-                        "Sent heartbeat, got response: " + response, 0, -1);
-            } catch (IOException e) {
-                logger.logEvent(LogLevel.ERROR, "EdgeHeartbeat", "run",
-                        "Error in heartbeat: " + e.toString(), 0, -1);
-            } finally {
-                try {
-                    if (dos != null)
-                        dos.close();
-                } catch (IOException ignored) {
-                }
-                try {
-                    if (dis != null)
-                        dis.close();
-                } catch (IOException ignored) {
-                }
-                try {
-                    if (socket != null)
-                        socket.close();
-                } catch (IOException ignored) {
-                }
+
+                // Wait before sending the next heartbeat
+                Thread.sleep(5000);
+            }
+        } catch (IOException | InterruptedException e) {
+            logger.logEvent(LogLevel.ERROR, "EdgeHeartbeat", "run",
+                    "Error in persistent heartbeat: " + e.getMessage(), 0, -1);
+        } finally {
+            try {
+                if (dos != null)
+                    dos.close();
+            } catch (IOException ignored) {
             }
             try {
-                Thread.sleep(5000);
-            } catch (InterruptedException ie) {
-                running = false;
+                if (dis != null)
+                    dis.close();
+            } catch (IOException ignored) {
             }
+            try {
+                if (socket != null)
+                    socket.close();
+            } catch (IOException ignored) {
+            }
+            logger.logEvent(LogLevel.INFO, "EdgeHeartbeat", "run",
+                    "Persistent heartbeat connection closed.", 0, -1);
         }
-        logger.logEvent(LogLevel.INFO, "EdgeHeartbeat", "run",
-                "EdgeHeartbeat thread exiting.", 0, -1);
     }
 
     public void stopHeartbeat() {

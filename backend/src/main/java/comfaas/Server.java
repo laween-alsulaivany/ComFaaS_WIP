@@ -62,23 +62,23 @@ public class Server extends CoreOperations {
         logger.logEvent(LogLevel.SUCCESS, "Server", "Connection",
                 "Server Connection established with client.", 0, -1);
 
-        String[] initialIPs = getUniqueIPs();
-        System.err.println("Initial IPs: " + Arrays.toString(initialIPs));
-
-        // Determine effective server type based on whether one of the initial IPs
-        // equals cloudIP.
-        boolean isCloud = false;
-        for (String ip : initialIPs) {
-            if (ip.equals(cloudIP)) {
-                isCloud = true;
-                break;
-            }
-        }
-        String effectiveType = isCloud ? "cloud" : "edge";
+        // // Determine effective server type based on whether one of the initial IPs
+        // // equals cloudIP.
+        // boolean isCloud = false;
+        // for (String ip : initialIPs) {
+        // if (ip.equals(cloudIP)) {
+        // isCloud = true;
+        // break;
+        // }
+        // }
+        String effectiveType = "edge";
         // Now, assign the algorithm instance using the new constructor (only node type
         // needed)
         this.algo = new TheAlgo(effectiveType);
         System.err.println("Algo: " + algo);
+
+        String[] initialIPs = getUniqueIPs();
+        System.err.println("Initial IPs: " + Arrays.toString(initialIPs));
 
         // If this instance represents an edge (all servers except the cloud), call
         // ipUpdate

@@ -313,33 +313,25 @@ public class CoreOperations {
         int np = dis.readInt();
 
         // Compute metrics to pass to the FaaS update:
-        double availableCpu = comfaas.theAlgoTools.CpuAvailability.getCpuAvailability();
-        double freeMemory = comfaas.theAlgoTools.MemoryUtility.getFreeMemoryInMB();
 
-        // also get cpu used per process and memory used per process
-        // double cpuUsedPerProcess =
-        // comfaas.theAlgoTools.CpuAvailability.getCpuUsedPerProcess();
-        // Determine the file size of the FaaS application (assumed to be in the
-        // serverProgramsFolder)
         File programFile = new File(serverProgramsFolder, programName);
         double fileSize = programFile.exists() ? programFile.length() : 0;
+        double processCpuLoad = comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
+        double processMemoryUsed = comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
 
         // Now update the algorithm with these metrics.
         if (algo != null) {
-            algo.faasUpdate(programName, availableCpu, freeMemory, fileSize);
+            algo.faasUpdate(programName, processCpuLoad, processMemoryUsed, fileSize);
         } else {
             logger.logEvent(LogLevel.WARNING, "CoreOperations", "handleExecuteTask",
                     "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
         }
-        // --- New: Compute per-process metrics ---
-        double processCpuLoad = comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
-        double processMemoryUsed = comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
         logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
                 "Process CPU Load: " + processCpuLoad + "%, Process Memory Used: " + processMemoryUsed + " MB",
                 0, -1);
-        algo.faasUpdate(programName, availableCpu, freeMemory, fileSize,
-                new String[] { String.valueOf(processCpuLoad),
-                        String.valueOf(processMemoryUsed) });
+
+        // call the algo's faasUpdate method
+        algo.faasUpdate(programName, processCpuLoad, processMemoryUsed, fileSize);
 
         // Execute the task.
         if (location == null) {

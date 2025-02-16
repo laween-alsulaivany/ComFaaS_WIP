@@ -12,8 +12,6 @@ import java.net.Socket;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.json.JSONObject;
-
 import comfaas.Logger.LogLevel;
 
 // ------------------------------------------
@@ -317,6 +315,10 @@ public class CoreOperations {
         // Compute metrics to pass to the FaaS update:
         double availableCpu = comfaas.theAlgoTools.CpuAvailability.getCpuAvailability();
         double freeMemory = comfaas.theAlgoTools.MemoryUtility.getFreeMemoryInMB();
+
+        // also get cpu used per process and memory used per process
+        // double cpuUsedPerProcess =
+        // comfaas.theAlgoTools.CpuAvailability.getCpuUsedPerProcess();
         // Determine the file size of the FaaS application (assumed to be in the
         // serverProgramsFolder)
         File programFile = new File(serverProgramsFolder, programName);
@@ -329,6 +331,15 @@ public class CoreOperations {
             logger.logEvent(LogLevel.WARNING, "CoreOperations", "handleExecuteTask",
                     "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
         }
+        // --- New: Compute per-process metrics ---
+        double processCpuLoad = comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
+        double processMemoryUsed = comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
+        logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
+                "Process CPU Load: " + processCpuLoad + "%, Process Memory Used: " + processMemoryUsed + " MB",
+                0, -1);
+        algo.faasUpdate(programName, availableCpu, freeMemory, fileSize,
+                new String[] { String.valueOf(processCpuLoad),
+                        String.valueOf(processMemoryUsed) });
 
         // Execute the task.
         if (location == null) {

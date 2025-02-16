@@ -42,18 +42,19 @@ public class TheAlgo extends AbstractAlgo {
      */
     @Override
     protected void ipUpdateImpl(String IP) {
-        String serverDir = System.getenv("SERVER_DIR");
-        if (serverDir == null) {
-            System.err.println("SERVER_DIR environment variable not set.");
-            return;
-        }
-        if (!ipDictionary.containsKey(IP)) {
-            ipDictionary.put(this.node, IP);
-            // ipDictionary.put(IP, IP);
-            System.out.println("IP dictionary updated with new entry: " + this.node + " " + IP);
-        } else {
-            System.out.println("IP address already exists in the dictionary: " + IP);
-        }
+        System.err.println("ipUpdateImpl was called in algo.");
+        // String serverDir = System.getenv("SERVER_DIR");
+        // if (serverDir == null) {
+        // System.err.println("SERVER_DIR environment variable not set.");
+        // return;
+        // }
+        // if (!ipDictionary.containsKey(IP)) {
+        // ipDictionary.put(this.node, IP);
+        // ipDictionary.put(IP, IP);
+        // System.out.println("IP dictionary updated with new entry: " + IP);
+        // } else {
+        // System.out.println("IP address already exists in the dictionary: " + IP);
+        // }
     }
 
     /**

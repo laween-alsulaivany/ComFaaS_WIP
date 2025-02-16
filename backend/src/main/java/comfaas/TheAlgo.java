@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,13 +15,20 @@ import java.util.concurrent.Executors;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import comfaas.theAlgoTools.CpuDataCollector;
+
 public class TheAlgo extends AbstractAlgo {
-    // Executor service for any threads this class might use.
-    private ExecutorService executor;
-    // A dummy socket field to simulate an open socket.
-    // private Socket socket;
-    // Random instance for selecting a random IP.
+
     private Random random;
+
+    // ----- In the abstract class -----
+    // protected Map<String, String> ipDictionary;
+    // protected Map<String, String> faasDictionary;
+    // protected String node; 
+
+    // ------ System Node Data Collectors.
+    
+    private CpuDataCollector cpuDataCollector ;
 
     /**
      * Constructor.
@@ -31,10 +39,10 @@ public class TheAlgo extends AbstractAlgo {
     public TheAlgo(String node) {
         super(node);
         this.random = new Random();
-        // For demonstration, we initialize an executor with a fixed thread pool.
-        this.executor = Executors.newFixedThreadPool(2);
-        // Initialize socket as null (or create one if needed).
-        // this.socket = null;
+
+        cpuDataCollector = new CpuDataCollector() ;
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> this.close()));
     }
 
     /**
@@ -124,18 +132,9 @@ public class TheAlgo extends AbstractAlgo {
      */
     @Override
     public void close() {
-        // Shutdown the executor service.
-        if (executor != null) {
-            executor.shutdownNow();
-        }
-        // Close the socket if it was opened./
-        // if (socket != null) {/
-        //     try {
-        //         socket.close();
-        //     } catch (IOException e) {
-        //         System.err.println("Error closing socket: " + e.getMessage());
-        //     }
-        // }
+
+        cpuDataCollector.close() ;
+
         System.out.println("TheAlgo closed successfully.");
     }
 }

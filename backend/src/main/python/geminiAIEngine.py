@@ -33,7 +33,7 @@ def extract_numbers(input_string):
         print("Invalid number format found.")
         return None
 
-genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+
 
 
 parser = argparse.ArgumentParser(
@@ -69,7 +69,9 @@ prompt = """
 
 input_text = f"{prompt}\n{program_text}"
 
+genai.configure(api_key=os.environ['GEMINI_API_KEY'])
 model = genai.GenerativeModel(model_name='gemini-2.0-flash')
+
 response = model.generate_content(input_text)
 
 numbers = extract_numbers(response.text)

@@ -26,9 +26,6 @@ public abstract class AbstractAlgo {
         // }
         // Initialize the FaaS dictionary.
         this.faasDictionary = new HashMap<>();
-        System.out.println("AbstractAlgo constructor: " + node);
-        System.out.println("IPs: " + ipDictionary);
-        System.out.println("FaaS: " + faasDictionary);
     }
 
     /**

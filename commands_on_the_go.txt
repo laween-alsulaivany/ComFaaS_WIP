@@ -4,6 +4,8 @@ java -cp ComFaaS.jar comfaas.Main server server -p 12345 -role edge -cloudIP 192
 
 java -cp ComFaaS.jar comfaas.Main server server -p 12333 -role edge -cloudIP 192.168.70.10 -cloudPort 12353  
 
+
+// client to cloud directly
 java -jar ComFaaS.jar client runtask -server 192.168.70.10 -p 12353 -l server -np 1 -tn BigSummation.py -lang python
 
 
@@ -12,8 +14,7 @@ java -jar ComFaaS.jar client listfiles -server 192.168.70.10 -p 12353 -l server 
 
 java -jar ComFaaS.jar client upload -server 192.168.70.10 -p 12353 -l server -local "client/Input/BigSummation.py" -remote "server/Programs"
 
-for the edge:
-
+// for the edge:
 java -jar ComFaaS.jar client upload -server 192.168.70.20 -p 12345 -l server -local "client/Input/BigSummation.py" -remote "server/Programs"
 
 java -jar ComFaaS.jar client runtask -server 192.168.70.20 -p 12345 -l server -role edge -np 1 -tn BigSummation.py -lang python

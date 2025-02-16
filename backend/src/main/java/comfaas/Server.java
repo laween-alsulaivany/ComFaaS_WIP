@@ -119,6 +119,8 @@ public class Server extends CoreOperations {
 
         // +++ Only if we are a cloud server, start discovering edges +++
         if ("cloud".equalsIgnoreCase(Main.serverType)) {
+            TheAlgo algo = new TheAlgo(Main.serverType);
+            algo.ipUpdate(cloudIP);
             logger.logEvent(LogLevel.INFO, "Server", "Startup",
                     "Server type is CLOUD; starting EdgeDiscovery thread...", 0, -1);
 

@@ -1,7 +1,6 @@
 package comfaas;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -48,10 +47,10 @@ public class TheAlgo extends AbstractAlgo {
             System.err.println("SERVER_DIR environment variable not set.");
             return;
         }
-
         if (!ipDictionary.containsKey(IP)) {
-            ipDictionary.put(IP, IP);
-            System.out.println("IP dictionary updated with new entry: " + IP);
+            ipDictionary.put(this.node, IP);
+            // ipDictionary.put(IP, IP);
+            System.out.println("IP dictionary updated with new entry: " + this.node + " " + IP);
         } else {
             System.out.println("IP address already exists in the dictionary: " + IP);
         }
@@ -88,9 +87,8 @@ public class TheAlgo extends AbstractAlgo {
     }
 
     public void faasUpdate(String fileName, double CPU, double RAM, double fileSize, String[] additonalArgs) {
-        faasUpdate( fileName, CPU, RAM, fileSize) ;
+        faasUpdate(fileName, CPU, RAM, fileSize);
     }
-
 
     /**
      * Looks up the given FaaS file name in the FaaS dictionary, validates that it
@@ -130,11 +128,11 @@ public class TheAlgo extends AbstractAlgo {
         }
         // Close the socket if it was opened./
         // if (socket != null) {/
-        //     try {
-        //         socket.close();
-        //     } catch (IOException e) {
-        //         System.err.println("Error closing socket: " + e.getMessage());
-        //     }
+        // try {
+        // socket.close();
+        // } catch (IOException e) {
+        // System.err.println("Error closing socket: " + e.getMessage());
+        // }
         // }
         System.out.println("TheAlgo closed successfully.");
     }

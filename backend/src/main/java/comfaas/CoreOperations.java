@@ -15,6 +15,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import comfaas.Logger.LogLevel;
+import comfaas.theAlgoTools.ProcessCpuUsage;
+import comfaas.theAlgoTools.ProcessMemoryUsage;
 
 // ------------------------------------------
 // * CoreOperations class provides utility functions for file and folder operations,
@@ -307,32 +309,93 @@ public class CoreOperations {
     // ------------------------------------------
     // Handles executing a task on the client.
     // ------------------------------------------
+    // private void handleExecuteTask() throws IOException, InterruptedException {
+    // // Read task parameters from the client.
+    // // String location = dis.readUTF(); // e.g., "server"
+    // // String language = dis.readUTF();
+    // // String programName = dis.readUTF();
+    // // int np = dis.readInt();
+
+    // // Compute a snapshot of pre-task metrics.
+    // double startCpu =
+    // comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
+    // double startMem = comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
+    // File programFile = new File(serverProgramsFolder, programName);
+    // double fileSize = programFile.exists() ? programFile.length() : 0;
+
+    // // Optionally update the algorithm with pre-task metrics.
+    // if (algo != null) {
+    // algo.faasUpdate(programName, startCpu, startMem, fileSize);
+    // } else {
+    // logger.logEvent(LogLevel.WARNING, "CoreOperations", "handleExecuteTask",
+    // "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
+    // }
+
+    // // Immediately send acknowledgment to the client.
+    // dos.writeUTF("Task started");
+    // dos.flush();
+
+    // // Now, run the task asynchronously so that the client isn't kept waiting.
+    // ExecutorService taskExecutor = Executors.newSingleThreadExecutor();
+    // taskExecutor.submit(() -> {
+    // try {
+    // // Execute the task.
+    // if ("server".equalsIgnoreCase(location)) {
+    // runProgramOnServer(language, programName, np);
+    // if ("edge".equalsIgnoreCase(Main.serverType)) {
+    // forwardFileToCloud(serverProgramsFolder, serverProgramsFolder, programName);
+    // deleteLocalProgram(programName);
+    // logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
+    // "Edge server type was detected", 0, -1);
+    // }
+    // } else {
+    // logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleExecuteTask",
+    // "Invalid location: " + location, 0, -1);
+    // }
+    // // Record post-task metrics.
+    // double endCpu =
+    // comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
+    // double endMem = comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
+    // // Optionally, compute averages or differences here.
+    // if (algo != null) {
+    // // Update the algorithm with final per-task metrics.
+    // algo.faasUpdate(programName, endCpu, endMem, fileSize);
+    // }
+    // logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
+    // "Task completed asynchronously", 0, -1);
+    // } catch (Exception ex) {
+    // logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleExecuteTask",
+    // "Error executing task asynchronously: " + ex.getMessage(), 0, -1);
+    // }
+    // });
+    // taskExecutor.shutdown();
+    // // Do not wait for the task to complete—client already got the
+    // acknowledgment.
+    // }
+
     private void handleExecuteTask() throws IOException, InterruptedException {
-        // Read task parameters from the client.
-        String location = dis.readUTF(); // e.g., "server"
+        // System.out.println("handleExecuteTask we have recieved");
+        String location = dis.readUTF(); // "server"
         String language = dis.readUTF();
         String programName = dis.readUTF();
         int np = dis.readInt();
 
-        // Compute a snapshot of pre-task metrics.
-        double startCpu = comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
-        double startMem = comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
+        // Compute metrics to pass to the FaaS update:
+
         File programFile = new File(serverProgramsFolder, programName);
         double fileSize = programFile.exists() ? programFile.length() : 0;
+        // double ProcessCpuUsage =
+        // comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
+        // double ProcessMemoryUsage =
+        // comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
 
-        // Optionally update the algorithm with pre-task metrics.
-        if (algo != null) {
-            algo.faasUpdate(programName, startCpu, startMem, fileSize);
-        } else {
-            logger.logEvent(LogLevel.WARNING, "CoreOperations", "handleExecuteTask",
-                    "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
-        }
+        long startTime = System.nanoTime();
+        long startCpuTime = ProcessCpuUsage.getProcessCpuTimeNanos();
 
         // Immediately send acknowledgment to the client.
         dos.writeUTF("Task started");
         dos.flush();
 
-        // Now, run the task asynchronously so that the client isn't kept waiting.
         ExecutorService taskExecutor = Executors.newSingleThreadExecutor();
         taskExecutor.submit(() -> {
             try {
@@ -349,116 +412,51 @@ public class CoreOperations {
                     logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleExecuteTask",
                             "Invalid location: " + location, 0, -1);
                 }
-                // Record post-task metrics.
-                double endCpu = comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
-                double endMem = comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
-                // Optionally, compute averages or differences here.
-                if (algo != null) {
-                    // Update the algorithm with final per-task metrics.
-                    algo.faasUpdate(programName, endCpu, endMem, fileSize);
-                }
                 logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
                         "Task completed asynchronously", 0, -1);
             } catch (Exception ex) {
                 logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleExecuteTask",
                         "Error executing task asynchronously: " + ex.getMessage(), 0, -1);
             }
+
         });
+
         taskExecutor.shutdown();
-        // Do not wait for the task to complete—client already got the acknowledgment.
+        // if (algo != null)
+
+        // {
+        // algo.faasUpdate(programName, ProcessCpuUsage, ProcessMemoryUsage, fileSize);
+        // } else {
+        // logger.logEvent(LogLevel.WARNING, "CoreOperations", "handleExecuteTask",
+        // "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
+        // }
+
+        long endTime = System.nanoTime();
+        long endCpuTime = ProcessCpuUsage.getProcessCpuTimeNanos();
+        long elapsedTime = endTime - startTime;
+        int cores = Runtime.getRuntime().availableProcessors();
+
+        System.out.println("This is CPU Average using Time");
+        double avgCpuTimeMethod = ProcessCpuUsage.averageCpuUsageUsingTime(startCpuTime, endCpuTime, elapsedTime,
+                cores);
+        System.out.println("Average CPU Usage by Time: " + avgCpuTimeMethod);
+
+        System.out.println("This is CPU Average by sampling");
+        double avgCpuTimeSampling = ProcessCpuUsage.averageCpuUsageBySampling(5000, 500); // sample for 5 seconds every
+                                                                                          // 500ms
+        System.out.println("Average CPU Usage by Sampling: " + avgCpuTimeSampling);
+
+        System.out.println("This is Max Memory Used");
+        double maxMemoryUsed = ProcessMemoryUsage.maxMemoryUsageDuringPeriod(5000, 500); // sample for 5 seconds every
+                                                                                         // 500ms
+        System.out.println("Max Memory Used: " + maxMemoryUsed);
+
+        System.out.println("Sampling");
+        algo.faasUpdate(programName, avgCpuTimeMethod, maxMemoryUsed, fileSize);
+        System.out.println("Time");
+        algo.faasUpdate(programName, avgCpuTimeMethod, maxMemoryUsed, fileSize);
+
     }
-
-    // private void handleExecuteTask() throws IOException, InterruptedException {
-    // // System.out.println("handleExecuteTask we have recieved");
-    // String location = dis.readUTF(); // "server"
-    // String language = dis.readUTF();
-    // String programName = dis.readUTF();
-    // int np = dis.readInt();
-
-    // // Compute metrics to pass to the FaaS update:
-
-    // File programFile = new File(serverProgramsFolder, programName);
-    // double fileSize = programFile.exists() ? programFile.length() : 0;
-    // long startTime = System.nanoTime();
-    // long startCpuTime =
-    // comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuTimeNanos();
-    // double startMem = comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
-
-    // // double processCpuLoad =
-    // // comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
-    // // double processMemoryUsed =
-    // // comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
-
-    // // Now update the algorithm with these metrics.
-    // // if (algo != null) {
-    // // algo.faasUpdate(programName, processCpuLoad, processMemoryUsed, fileSize);
-    // // } else {
-    // // logger.logEvent(LogLevel.WARNING, "CoreOperations", "handleExecuteTask",
-    // // "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
-    // // }
-    // // logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
-    // // "Process CPU Load: " + processCpuLoad + "%, Process Memory Used: " +
-    // // processMemoryUsed + " MB",
-    // // 0, -1);
-
-    // // // call the algo's faasUpdate method
-    // // algo.faasUpdate(programName, processCpuLoad, processMemoryUsed, fileSize);
-
-    // // Update the algorithm with current metrics.
-    // if (algo != null) {
-    // // Here, we send the system snapshot (if desired, you could combine with
-    // // per‑process metrics)
-    // algo.faasUpdate(programName, startCpuTime / 1e9, startMem, fileSize);
-    // } else {
-    // logger.logEvent(LogLevel.WARNING, "CoreOperations", "handleExecuteTask",
-    // "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
-    // }
-    // // Execute the task.
-    // if (location == null) {
-    // System.err.println("Invalid location for executeTask: " + location);
-    // } else {
-    // switch (location.toLowerCase()) {
-    // case "server":
-    // runProgramOnServer(language, programName, np);
-    // if ("edge".equalsIgnoreCase(Main.serverType)) {
-    // forwardFileToCloud(serverProgramsFolder, serverProgramsFolder, programName);
-    // deleteLocalProgram(programName);
-    // logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
-    // "Edge server type was detected", 0, -1);
-    // }
-    // break; // TODO: Make sure this doesnt break it
-    // default:
-    // System.err.println("Invalid location for executeTask: " + location);
-    // }
-    // }
-
-    // // Record metrics after task execution.
-    // long endTime = System.nanoTime();
-    // long endCpuTime =
-    // comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuTimeNanos();
-    // double endMem = comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
-
-    // // Compute elapsed real time in nanoseconds and CPU time used.
-    // long elapsedTime = endTime - startTime; // nanoseconds
-    // long cpuTimeUsed = endCpuTime - startCpuTime; // nanoseconds
-    // int numCores = Runtime.getRuntime().availableProcessors();
-    // double avgCpuPercentage = (cpuTimeUsed / (double) (elapsedTime * numCores)) *
-    // 100;
-
-    // double avgMemUsage = (startMem + endMem) / 2.0; // Simple average (could be
-    // improved)
-    // logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
-    // "Task completed. Avg CPU Load: " + avgCpuPercentage + "%, Avg Memory Used: "
-    // + avgMemUsage + " MB", 0,
-    // -1);
-
-    // // Optionally, update the algorithm with the final per-task metrics.
-    // if (algo != null) {
-    // algo.faasUpdate(programName, avgCpuPercentage, avgMemUsage, fileSize);
-    // }
-    // dos.writeUTF("executeTaskComplete");
-    // dos.flush();
-    // }
 
     // ---------------------------------------------------------
     // * Folder-based commands

@@ -446,7 +446,6 @@ public class CoreOperations {
         System.out.println("Average CPU Usage by Sampling: " + avgCpuTimeSampling);
         System.out.println("   ");
 
-        System.out.println("This is Max Memory Used");
         double maxMemoryUsed = ProcessMemoryUsage.maxMemoryUsageDuringPeriod(5000, 500); // sample for 5 seconds every
         // 500ms
         System.out.println("   ");
@@ -460,7 +459,7 @@ public class CoreOperations {
         System.out.println("====================================================");
         System.out.println("Sampling Method");
         System.out.println("====================================================");
-        algo.faasUpdate(programName, avgCpuTimeMethod, maxMemoryUsed, fileSize);
+        algo.faasUpdate(programName, avgCpuTimeSampling, maxMemoryUsed, fileSize);
         System.out.println("====================================================");
         System.out.println("Time Method");
         System.out.println("====================================================");

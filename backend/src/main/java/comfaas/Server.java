@@ -39,8 +39,6 @@ public class Server extends CoreOperations {
     private static ExecutorService executor = null;
     private static int shutdownTimeoutSec = Main.shutdownTimeout > 0 ? Main.shutdownTimeout : 30;
 
-    private AbstractAlgo algo;
-
     static String cloudIP; // fallback
     static int cloudPort = 12353; // fallback
 
@@ -63,31 +61,35 @@ public class Server extends CoreOperations {
         this.dos = new DataOutputStream(clientSocket.getOutputStream());
         logger.logEvent(LogLevel.SUCCESS, "Server", "Connection",
                 "Server Connection established with client.", 0, -1);
+
         String[] initialIPs = getUniqueIPs();
         System.err.println("Initial IPs: " + Arrays.toString(initialIPs));
 
-        // Determine effective server type based on cloud IP presence.
+        // Determine effective server type based on whether one of the initial IPs
+        // equals cloudIP.
         boolean isCloud = false;
         for (String ip : initialIPs) {
-            if (ip.equals(cloudIP)) { // Assumes Main.cloudIP is defined.
+            if (ip.equals(cloudIP)) {
                 isCloud = true;
                 break;
             }
         }
         String effectiveType = isCloud ? "cloud" : "edge";
-        this.algo = new TheAlgo(initialIPs, effectiveType);
-
+        // Now, assign the algorithm instance using the new constructor (only node type
+        // needed)
+        this.algo = new TheAlgo(effectiveType);
         System.err.println("Algo: " + algo);
-        // this.algo.ipUpdate();
-        // this.algo.faasUpdate();
+
+        // If this instance represents an edge (all servers except the cloud), call
+        // ipUpdate
+        if ("edge".equalsIgnoreCase(effectiveType)) {
+            String ownIP = socket.getInetAddress().getHostAddress();
+            this.algo.ipUpdate(ownIP);
+        }
+        // (faasUpdate calls are handled later when tasks are executed)
     }
 
-    /**
-     * Updated storeEdgeInfo: Uses composite key "ip:port" to ensure uniqueness.
-     * If an entry for the same IP and port exists, updates it (preserving the edge
-     * ID);
-     * otherwise assigns a new edge ID.
-     */
+    // Updated storeEdgeInfo remains the same.
     public static synchronized void storeEdgeInfo(EdgeInfo info) {
         String key = info.getIp() + ":" + info.getPort();
         if (edgeRegistry.containsKey(key)) {

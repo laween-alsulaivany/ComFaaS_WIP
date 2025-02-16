@@ -30,6 +30,9 @@ public class CoreOperations {
     // Root directory
     private static final Path ROOT = Main.getRootDir();
 
+    // Algorithm
+    protected AbstractAlgo algo;
+
     // Folder names for Client vs. Server
     public String clientInputFolder = ROOT.resolve("client").resolve("Input").toString();
     public String clientOutputFolder = ROOT.resolve("client").resolve("Output").toString();
@@ -91,60 +94,36 @@ public class CoreOperations {
     }
 
     /**
-     * If the client says "heartbeat", we read a JSON object and store
-     * the Edge info in the registry (via Server.storeEdgeInfo).
-     * Also appends the received JSON to a log file in the server output folder.
+     * If the client says "heartbeat", this method will be called to handle the
+     * request.
      */
+
     private void handleHeartbeat() throws IOException {
-        // System.out.println("Received heartbeat from edge");
-        logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat", "Received heartbeat from edge", 0, -1);
-        int jsonLen = dis.readInt();
-        if (jsonLen <= 0) {
-            dos.writeUTF("ERR: Invalid JSON length");
-            return;
-        }
-
-        byte[] jsonBuf = new byte[jsonLen];
-        dis.readFully(jsonBuf);
-        String jsonString = new String(jsonBuf);
-
-        // System.out.println("Received JSON: " + jsonString);
-
-        // Save the JSON to a file (append mode)
-        java.nio.file.Path logFile = java.nio.file.Paths.get(serverOutputFolder, "ip.json");
+        logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat", "Received heartbeat", 0, -1);
         try {
-            java.nio.file.Files.write(
-                    logFile,
-                    (jsonString + System.lineSeparator()).getBytes(),
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.APPEND);
-        } catch (IOException ioe) {
-            System.err.println("Error saving heartbeat log: " + ioe.getMessage());
-        }
+            // Read the node type (e.g., "edge" or "cloud") and the sender's IP address
+            String nodeType = dis.readUTF();
+            String senderIp = dis.readUTF();
 
-        try {
-            JSONObject obj = new JSONObject(jsonString);
-            // Ignore the incoming edge_id by forcing it to -1.
-            int edgeIdReceived = -1;
-            String ip = obj.optString("ip", socket.getInetAddress().getHostAddress());
-            if ("unknown".equalsIgnoreCase(ip)) {
-                ip = socket.getInetAddress().getHostAddress();
+            // For an edge, store its info in the registry (using the remote port from the
+            // socket)
+            if ("edge".equalsIgnoreCase(nodeType)) {
+                int port = socket.getPort();
+                EdgeInfo info = new EdgeInfo(-1, senderIp, port);
+                Server.storeEdgeInfo(info);
+                logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat",
+                        "Stored edge info: " + senderIp + ":" + port, 0, -1);
+            } else if ("cloud".equalsIgnoreCase(nodeType)) {
+                logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat",
+                        "Received heartbeat from cloud: " + senderIp, 0, -1);
             }
-            int port = obj.optInt("port", -1);
-            EdgeInfo info = new EdgeInfo(edgeIdReceived, ip, port);
 
-            // Store it in the Server's registry (this will assign a new unique edge ID)
-            Server.storeEdgeInfo(info);
-            logger.logEvent(LogLevel.INFO, "CoreOperations", "handleHeartbeat",
-                    "Stored EdgeInfo in Server registry", 0, -1);
-
-            // Respond
             dos.writeUTF("OK");
             dos.flush();
         } catch (Exception e) {
             logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleHeartbeat",
-                    "JSON parse error: " + e.getMessage(), 0, -1);
-            dos.writeUTF("ERR: JSON parse error");
+                    "Error handling heartbeat: " + e.getMessage(), 0, -1);
+            dos.writeUTF("ERR: " + e.getMessage());
             dos.flush();
         }
     }
@@ -335,25 +314,40 @@ public class CoreOperations {
         String programName = dis.readUTF();
         int np = dis.readInt();
 
-        if (null == location) {
+        // Compute metrics to pass to the FaaS update:
+        double availableCpu = comfaas.theAlgoTools.CpuAvailability.getCpuAvailability();
+        double freeMemory = comfaas.theAlgoTools.MemoryUtility.getFreeMemoryInMB();
+        // Determine the file size of the FaaS application (assumed to be in the
+        // serverProgramsFolder)
+        File programFile = new File(serverProgramsFolder, programName);
+        double fileSize = programFile.exists() ? programFile.length() : 0;
+
+        // Now update the algorithm with these metrics.
+        if (algo != null) {
+            algo.faasUpdate(programName, availableCpu, freeMemory, fileSize);
+        } else {
+            logger.logEvent(LogLevel.WARNING, "CoreOperations", "handleExecuteTask",
+                    "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
+        }
+
+        // Execute the task.
+        if (location == null) {
             System.err.println("Invalid location for executeTask: " + location);
-        } else
-            switch (location) {
-                case "server" -> {
+        } else {
+            switch (location.toLowerCase()) {
+                case "server":
                     runProgramOnServer(language, programName, np);
-                    if ("edge".equals(Main.serverType)) {
-                        // uploadFilefromClientToEdge(serverProgramsFolder, programName);
-                        // autoUploadTaskFile(programName);
+                    if ("edge".equalsIgnoreCase(Main.serverType)) {
                         forwardFileToCloud(serverProgramsFolder, serverProgramsFolder, programName);
                         deleteLocalProgram(programName);
                         logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
                                 "Edge server type was detected", 0, -1);
                     }
-
-                } // IMPORTANT: this is where it will
-                  // decide to go to cloud or edge
-                default -> System.err.println("Invalid location for executeTask: " + location);
+                    break; // TODO: Make sure this doesnt break it
+                default:
+                    System.err.println("Invalid location for executeTask: " + location);
             }
+        }
         dos.writeUTF("executeTaskComplete");
         dos.flush();
     }

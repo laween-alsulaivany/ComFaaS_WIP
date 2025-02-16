@@ -46,54 +46,40 @@ public class EdgeHeartbeat implements Runnable {
                 // Send "heartbeat" command
                 dos.writeUTF("heartbeat");
 
-                // Build JSON
-                String localIp = socket.getLocalAddress().getHostAddress();
-
+                // Send the node type and this edge's own IP address.
                 String nodeType = "edge";
-                String jsonString = """
-                        {
-                          "node": "%s",
-                          "edge_id": "%d",
-                          "ip": "%s",
-                          "port": %d,
-                        }
-                        """.formatted(nodeType, edgeId, localIp, localPort);
-                byte[] jsonBytes = jsonString.getBytes();
-                dos.writeInt(jsonBytes.length);
-                dos.write(jsonBytes);
+                String localIp = socket.getLocalAddress().getHostAddress();
+                dos.writeUTF(nodeType);
+                dos.writeInt(edgeId);
                 dos.flush();
 
                 // Read response from the server (expecting "OK")
                 String response;
                 try {
                     response = dis.readUTF();
-                } catch (java.io.EOFException eof) {
-                    // Server closed the connection after response; treat as "OK"
+                } catch (IOException eof) {
                     response = "OK";
                 }
                 logger.logEvent(LogLevel.INFO, "EdgeHeartbeat", "run",
                         "Sent heartbeat, got response: " + response, 0, -1);
             } catch (IOException e) {
                 logger.logEvent(LogLevel.ERROR, "EdgeHeartbeat", "run",
-                        "Error in long-lived heartbeat: " + e.toString(), 0, -1);
+                        "Error in heartbeat: " + e.toString(), 0, -1);
             } finally {
-                if (dos != null) {
-                    try {
+                try {
+                    if (dos != null)
                         dos.close();
-                    } catch (IOException ignored) {
-                    }
+                } catch (IOException ignored) {
                 }
-                if (dis != null) {
-                    try {
+                try {
+                    if (dis != null)
                         dis.close();
-                    } catch (IOException ignored) {
-                    }
+                } catch (IOException ignored) {
                 }
-                if (socket != null) {
-                    try {
+                try {
+                    if (socket != null)
                         socket.close();
-                    } catch (IOException ignored) {
-                    }
+                } catch (IOException ignored) {
                 }
             }
             try {
@@ -103,7 +89,7 @@ public class EdgeHeartbeat implements Runnable {
             }
         }
         logger.logEvent(LogLevel.INFO, "EdgeHeartbeat", "run",
-                "EdgeHeartbeat (long-lived) thread exiting.", 0, -1);
+                "EdgeHeartbeat thread exiting.", 0, -1);
     }
 
     public void stopHeartbeat() {

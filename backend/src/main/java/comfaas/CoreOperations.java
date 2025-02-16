@@ -1,21 +1,24 @@
 // CoreOperations.java
 package comfaas;
 
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import comfaas.Logger.LogLevel;
-import comfaas.theAlgoTools.ProcessCpuUsage;
 import comfaas.theAlgoTools.ProcessMemoryUsage;
 import comfaas.theAlgoTools.ScriptTimer;
 
@@ -210,8 +213,8 @@ public class CoreOperations {
         // Read the source folder and file name
         String sourceFolder = dis.readUTF();
         String fileName = dis.readUTF();
-        System.out.println("sourceFolder: " + sourceFolder);
-        System.out.println("fileName: " + fileName);
+        // System.out.println("sourceFolder: " + sourceFolder);
+        // System.out.println("fileName: " + fileName);
 
         // Create the source file
         // File fileToDelete = new File(sourceFolder, fileName);
@@ -383,15 +386,15 @@ public class CoreOperations {
 
         // Compute metrics to pass to the FaaS update:
 
-        File programFile = new File(serverProgramsFolder, programName);
-        double fileSize = programFile.exists() ? programFile.length() : 0;
-        // double ProcessCpuUsage =
-        // comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
-        // double ProcessMemoryUsage =
-        // comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
+        // File programFile = new File(serverProgramsFolder, programName);
+        // double fileSize = programFile.exists() ? programFile.length() : 0;
+        // // double ProcessCpuUsage =
+        // // comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
+        // // double ProcessMemoryUsage =
+        // // comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
 
-        long startTime = System.nanoTime();
-        long startCpuTime = ProcessCpuUsage.getProcessCpuTimeNanos();
+        // long startTime = System.nanoTime();
+        // long startCpuTime = ProcessCpuUsage.getProcessCpuTimeNanos();
 
         // Immediately send acknowledgment to the client.
         dos.writeUTF("Task started");
@@ -402,28 +405,15 @@ public class CoreOperations {
             try {
                 // Execute the task.
                 if ("server".equalsIgnoreCase(location)) {
-                    if ("python".equalsIgnoreCase(language)) {
-                        // Build the command. (Ensure that serverProgramsFolder is properly defined.)
-                        String command = "python " + serverProgramsFolder + "/" + programName;
-                        double[] timings = comfaas.theAlgoTools.ScriptTimer.runScript(command);
+                    runProgramOnServer(language, programName, np);
+                    if ("edge".equalsIgnoreCase(Main.serverType)) {
+                        runBenchmark(programName, language, np);
+                        forwardFileToCloud(serverProgramsFolder, serverProgramsFolder, programName);
+                        deleteLocalProgram(programName);
                         logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
-                                "Script timings: user=" + timings[0] + " sec, real=" + timings[1] + " sec, sys="
-                                        + timings[2] + " sec",
-                                0, -1);
-                        // Optionally update algorithm with the CPU time (for example, using the user
-                        // time).
-                        if (algo != null) {
-                            algo.faasUpdate(programName, timings[0], 0, fileSize);
-                        }
-                    } else {
-                        runProgramOnServer(language, programName, np);
-                        if ("edge".equalsIgnoreCase(Main.serverType)) {
-                            forwardFileToCloud(serverProgramsFolder, serverProgramsFolder, programName);
-                            deleteLocalProgram(programName);
-                            logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
-                                    "Edge server type was detected", 0, -1);
-                        }
+                                "Edge server type was detected", 0, -1);
                     }
+
                 } else {
                     logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleExecuteTask",
                             "Invalid location: " + location, 0, -1);
@@ -447,47 +437,55 @@ public class CoreOperations {
         // "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
         // }
 
-        long endTime = System.nanoTime();
-        long endCpuTime = ProcessCpuUsage.getProcessCpuTimeNanos();
-        long elapsedTime = endTime - startTime;
-        int cores = Runtime.getRuntime().availableProcessors();
+        // long endTime = System.nanoTime();
+        // long endCpuTime = ProcessCpuUsage.getProcessCpuTimeNanos();
+        // long elapsedTime = endTime - startTime;
+        // int cores = Runtime.getRuntime().availableProcessors();
 
-        double avgCpuTimeMethod = ProcessCpuUsage.averageCpuUsageUsingTime(startCpuTime, endCpuTime, elapsedTime,
-                cores);
-        System.out.println("Average CPU Usage by Time: " + avgCpuTimeMethod);
-        System.out.println("   ");
+        // double avgCpuTimeMethod =
+        // ProcessCpuUsage.averageCpuUsageUsingTime(startCpuTime, endCpuTime,
+        // elapsedTime,
+        // cores);
+        // System.out.println("Average CPU Usage by Time: " + avgCpuTimeMethod);
+        // System.out.println(" ");
 
-        double avgCpuTimeSampling = ProcessCpuUsage.averageCpuUsageBySampling(5000, 500); // sample for 5 seconds every
-        // 500ms
-        System.out.println("Average CPU Usage by Sampling: " + avgCpuTimeSampling);
-        System.out.println("   ");
-        System.out.println("print current directory: " + System.getProperty("user.dir"));
+        // double avgCpuTimeSampling = ProcessCpuUsage.averageCpuUsageBySampling(5000,
+        // 500); // sample for 5 seconds every
+        // // 500ms
+        // System.out.println("Average CPU Usage by Sampling: " + avgCpuTimeSampling);
+        // System.out.println(" ");
+        // System.out.println("print current directory: " +
+        // System.getProperty("user.dir"));
 
-        String command = "$SERVER_VENV/bin/python " + serverProgramsFolder + "/" + programName;
-        // String command = "python3 " + serverProgramsFolder + "/" + programName;
-        System.err.println("command: " + command);
-        double[] timings = ScriptTimer.runScript(command);
-        System.out.println("User: " + timings[0] + " sec");
-        System.out.println("Real: " + timings[1] + " sec");
-        System.out.println("Sys: " + timings[2] + " sec");
-        double maxMemoryUsed = ProcessMemoryUsage.maxMemoryUsageDuringPeriod(5000, 500); // sample for 5 seconds every
-        // 500ms
-        System.out.println("   ");
-        System.out.println("====================================================");
-        System.out.println("   ");
-        System.out.println("Max Memory Used: " + maxMemoryUsed);
-        System.out.println("   ");
-        System.out.println("====================================================");
-        System.out.println("   ");
+        // String command = "$SERVER_VENV/bin/python " + serverProgramsFolder + "/" +
+        // programName;
+        // // String command = "python3 " + serverProgramsFolder + "/" + programName;
+        // System.err.println("command: " + command);
+        // double[] timings = ScriptTimer.runScript(command);
+        // System.out.println("User: " + timings[0] + " sec");
+        // System.out.println("Real: " + timings[1] + " sec");
+        // System.out.println("Sys: " + timings[2] + " sec");
+        // System.out.println("(User + Sys) / Real: " + (timings[0] + timings[2]) /
+        // timings[1]);
+        // double maxMemoryUsed = ProcessMemoryUsage.maxMemoryUsageDuringPeriod(5000,
+        // 500); // sample for 5 seconds every
+        // // 500ms
+        // System.out.println(" ");
+        // System.out.println("====================================================");
+        // System.out.println(" ");
+        // System.out.println("Max Memory Used: " + maxMemoryUsed);
+        // System.out.println(" ");
+        // System.out.println("====================================================");
+        // System.out.println(" ");
 
-        System.out.println("====================================================");
-        System.out.println("Sampling Method");
-        System.out.println("====================================================");
-        algo.faasUpdate(programName, avgCpuTimeSampling, maxMemoryUsed, fileSize);
-        System.out.println("====================================================");
-        System.out.println("Time Method");
-        System.out.println("====================================================");
-        algo.faasUpdate(programName, avgCpuTimeMethod, maxMemoryUsed, fileSize);
+        // System.out.println("====================================================");
+        // System.out.println("Sampling Method");
+        // System.out.println("====================================================");
+        // algo.faasUpdate(programName, avgCpuTimeSampling, maxMemoryUsed, fileSize);
+        // System.out.println("====================================================");
+        // System.out.println("Time Method");
+        // System.out.println("====================================================");
+        // algo.faasUpdate(programName, avgCpuTimeMethod, maxMemoryUsed, fileSize);
 
     }
 
@@ -670,6 +668,92 @@ public class CoreOperations {
         return 0; // success
     }
 
+    public void runBenchmark(String programName, String language, int np) throws IOException, InterruptedException {
+
+        // Check if program has been benchmarked before
+        File benchmarkedFile = new File(serverOutputFolder, "benchmarked.txt");
+        if (benchmarkedFile.exists()) {
+            List<String> benchmarkedPrograms = Files.readAllLines(benchmarkedFile.toPath());
+            if (benchmarkedPrograms.contains(programName)) {
+                logger.logEvent(LogLevel.WARNING, "CoreOperations", "runBenchmark",
+                        "Program '" + programName + "' has already been benchmarked. Skipping...", 0, -1);
+                return;
+            }
+        }
+        // File Size
+        File programFile = new File(serverProgramsFolder, programName);
+        double fileSize = programFile.exists() ? programFile.length() : 0;
+
+        // Memory Usage
+        double maxMemoryUsed = ProcessMemoryUsage.maxMemoryUsageDuringPeriod(5000, 500); // sample for 5 seconds every
+
+        // CPU Usage
+        double cpuUtil = get_CPU(language, programName, np);
+
+        // Update the algorithm with the benchmark results
+        algo.faasUpdate(programName, cpuUtil, maxMemoryUsed, fileSize);
+
+        // Mark the program as benchmarked and save the programname inside a txt file
+        // called benchamrked.txt inside server/Ouput folder
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(benchmarkedFile, true))) {
+            writer.write(programName);
+            writer.newLine();
+        } catch (IOException e) {
+            logger.logEvent(LogLevel.ERROR, "CoreOperations", "runBenchmark",
+                    "Error writing to benchmarked.txt: " + e.getMessage(), 0, -1);
+        }
+        logger.logEvent(LogLevel.SUCCESS, "CoreOperations", "runBenchmark",
+                "Benchmarking completed for program: " + programName, 0, -1);
+    }
+
+    public double get_CPU(String language, String programName, int np) throws IOException, InterruptedException {
+        String command = "";
+        if ("python".equalsIgnoreCase(language)) {
+            // Use the virtual environment if available.
+            String serverVenvEnv = System.getenv("SERVER_VENV");
+            if (serverVenvEnv != null && !serverVenvEnv.isEmpty()) {
+                command = serverVenvEnv + "/bin/python " + serverProgramsFolder + "/" + programName;
+            } else {
+                command = "python " + serverProgramsFolder + "/" + programName;
+            }
+        } else if ("java".equalsIgnoreCase(language)) {
+            // Assume programName is a .java file located in serverProgramsFolder.
+            File javaFile = new File(serverProgramsFolder, programName);
+            if (!javaFile.exists()) {
+                throw new IOException("Java file not found: " + javaFile.getAbsolutePath());
+            }
+            // Use JavaProgramRunner to compile and obtain the class name.
+            JavaProgramRunner jRunner = new JavaProgramRunner();
+            if (!jRunner.compileJavaProgram(javaFile.getAbsolutePath())) {
+                throw new IOException("Failed to compile Java program: " + programName);
+            }
+            String className = jRunner.getClassName(programName); // Assumes this method extracts class name correctly.
+            command = "java -cp " + serverProgramsFolder + " " + className;
+        } else if ("c".equalsIgnoreCase(language)) {
+            // For C, if the file ends with ".c", compile it first.
+            File cFile = new File(serverProgramsFolder, programName);
+            if (programName.endsWith(".c")) {
+                CProgramRunner cRunner = new CProgramRunner();
+                if (!cRunner.compileCProgram(cFile.getAbsolutePath())) {
+                    throw new IOException("Failed to compile C program: " + programName);
+                }
+                // Assume the executable has the same name without the ".c" extension.
+                String exeName = programName.substring(0, programName.length() - 2);
+                command = serverProgramsFolder + "/" + exeName;
+            } else {
+                // Otherwise assume it is an already compiled executable.
+                command = serverProgramsFolder + "/" + programName;
+            }
+        } else {
+            throw new IOException("Unsupported language: " + language);
+        }
+        // Run the command with ScriptTimer and return the timings.
+        double[] timings = ScriptTimer.runScript(command);
+        System.out.println("(User + Sys) / Real: " + (timings[0] + timings[2]) / timings[1]);
+        double CPU_Load = (timings[0] + timings[2]) / timings[1];
+        return CPU_Load;
+    }
+
     // ---------------------------------------------------------
     // * HELPER FUNCTIONS
     // ---------------------------------------------------------
@@ -726,10 +810,12 @@ public class CoreOperations {
 
             // 5) Read response from the cloud
             String resp = cloudDis.readUTF();
-            System.out.println("Forwarded file to Cloud. Response: " + resp);
+            logger.logEvent(LogLevel.INFO, "CoreOperations", "forwardFileToCloud",
+                    "Forwarded file to Cloud. Response: " + resp, 0, fileSize);
 
         } catch (IOException e) {
-            System.err.println("Failed to forward file to Cloud: " + e.getMessage());
+            logger.logEvent(LogLevel.ERROR, "CoreOperations", "forwardFileToCloud",
+                    "Failed to forward file to Cloud: " + e.getMessage(), 0, -1);
         }
     }
 
@@ -741,9 +827,11 @@ public class CoreOperations {
         File fileToDelete = new File(edgeProgramsFolder, programName);
         if (fileToDelete.exists()) {
             if (fileToDelete.delete()) {
-                System.out.println("Removed local copy of " + programName + " from Edge.");
+                logger.logEvent(LogLevel.INFO, "CoreOperations", "deleteLocalProgram",
+                        "Removed local copy of " + programName + " from Edge.", 0, -1);
             } else {
-                System.err.println("Failed to remove local copy of " + programName);
+                logger.logEvent(LogLevel.ERROR, "CoreOperations", "deleteLocalProgram",
+                        "Failed to remove local copy of " + programName, 0, -1);
             }
         }
     }

@@ -46,7 +46,7 @@ public class ScriptTimer {
                 sys = parseTimeValue(line);
             } else {
                 // Print any unexpected lines (for debugging)
-                System.err.println("Time output: " + line);
+                // System.err.println("Time output: " + line);
             }
         }
         errReader.close();

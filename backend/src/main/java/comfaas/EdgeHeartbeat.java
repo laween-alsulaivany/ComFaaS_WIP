@@ -52,7 +52,9 @@ public class EdgeHeartbeat implements Runnable {
             String localIp = socket.getLocalAddress().getHostAddress();
             dos.writeUTF(nodeType);
             dos.writeUTF(localIp);
-            System.out.println("Sent heartbeat: " + nodeType + " with IP " + localIp);
+            logger.logEvent(LogLevel.NETWORK, "EdgeHeartbeat", "run",
+                    "Sent heartbeat: " + nodeType + " with IP " + localIp, 0, -1);
+            // System.out.println("Sent heartbeat: " + nodeType + " with IP " + localIp);
             dos.flush();
             logger.logEvent(LogLevel.INFO, "EdgeHeartbeat", "run",
                     "Sent heartbeat: " + nodeType + " with IP " + localIp, 0, -1);

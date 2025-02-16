@@ -75,10 +75,7 @@ public class Server extends CoreOperations {
         // Now, assign the algorithm instance using the new constructor (only node type
         // needed)
         this.algo = new TheAlgo(effectiveType);
-        System.err.println("Algo: " + algo);
-
-        String[] initialIPs = getUniqueIPs();
-        System.err.println("Initial IPs: " + Arrays.toString(initialIPs));
+        // System.err.println("Algo: " + algo);
 
         // If this instance represents an edge (all servers except the cloud), call
         // ipUpdate
@@ -87,6 +84,8 @@ public class Server extends CoreOperations {
             this.algo.ipUpdate(ownIP);
         }
         // (faasUpdate calls are handled later when tasks are executed)
+        String[] initialIPs = getUniqueIPs();
+        System.err.println("current IPs: " + Arrays.toString(initialIPs));
     }
 
     // Updated storeEdgeInfo remains the same.

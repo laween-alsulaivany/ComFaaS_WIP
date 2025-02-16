@@ -104,10 +104,10 @@ public class Client extends CoreOperations {
         // .println("Executing task: Location=" + location + ", Language=" + language +
         // ", Program=" + programName
         // + ", Processes=" + np);
-        System.err.println(programName);
-        System.out.println("trying to Autoupload task file");
+        // System.err.println(programName);
+        // System.out.println("trying to Autoupload task file");
         autoUploadTaskFile(programName);
-        System.out.println("Autoupload task file done");
+        logger.info("Client", "runTask", "Autoupload task file done");
         dos.writeUTF("runTask");
         // System.out.println("writing runTask");
         logger.info("Client", "runTask", "Executing task: " +

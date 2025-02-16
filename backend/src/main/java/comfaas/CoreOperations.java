@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import comfaas.Logger.LogLevel;
 import comfaas.theAlgoTools.ProcessCpuUsage;
 import comfaas.theAlgoTools.ProcessMemoryUsage;
+import comfaas.theAlgoTools.ScriptTimer;
 
 // ------------------------------------------
 // * CoreOperations class provides utility functions for file and folder operations,
@@ -445,7 +446,11 @@ public class CoreOperations {
         // 500ms
         System.out.println("Average CPU Usage by Sampling: " + avgCpuTimeSampling);
         System.out.println("   ");
-
+        System.out.println("print current directory: " + System.getProperty("user.dir"));
+        double[] timings = ScriptTimer.runScript(programName);
+        System.out.println("User: " + timings[0] + " sec");
+        System.out.println("Real: " + timings[1] + " sec");
+        System.out.println("Sys: " + timings[2] + " sec");
         double maxMemoryUsed = ProcessMemoryUsage.maxMemoryUsageDuringPeriod(5000, 500); // sample for 5 seconds every
         // 500ms
         System.out.println("   ");

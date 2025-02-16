@@ -402,12 +402,27 @@ public class CoreOperations {
             try {
                 // Execute the task.
                 if ("server".equalsIgnoreCase(location)) {
-                    runProgramOnServer(language, programName, np);
-                    if ("edge".equalsIgnoreCase(Main.serverType)) {
-                        forwardFileToCloud(serverProgramsFolder, serverProgramsFolder, programName);
-                        deleteLocalProgram(programName);
+                    if ("python".equalsIgnoreCase(language)) {
+                        // Build the command. (Ensure that serverProgramsFolder is properly defined.)
+                        String command = "python " + serverProgramsFolder + "/" + programName;
+                        double[] timings = comfaas.theAlgoTools.ScriptTimer.runScript(command);
                         logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
-                                "Edge server type was detected", 0, -1);
+                                "Script timings: user=" + timings[0] + " sec, real=" + timings[1] + " sec, sys="
+                                        + timings[2] + " sec",
+                                0, -1);
+                        // Optionally update algorithm with the CPU time (for example, using the user
+                        // time).
+                        if (algo != null) {
+                            algo.faasUpdate(programName, timings[0], 0, fileSize);
+                        }
+                    } else {
+                        runProgramOnServer(language, programName, np);
+                        if ("edge".equalsIgnoreCase(Main.serverType)) {
+                            forwardFileToCloud(serverProgramsFolder, serverProgramsFolder, programName);
+                            deleteLocalProgram(programName);
+                            logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
+                                    "Edge server type was detected", 0, -1);
+                        }
                     }
                 } else {
                     logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleExecuteTask",
@@ -448,6 +463,7 @@ public class CoreOperations {
         System.out.println("   ");
         System.out.println("print current directory: " + System.getProperty("user.dir"));
         String command = "python " + serverProgramsFolder + "/" + programName;
+        System.err.println("command: " + command);
         double[] timings = ScriptTimer.runScript(command);
         System.out.println("User: " + timings[0] + " sec");
         System.out.println("Real: " + timings[1] + " sec");

@@ -9,9 +9,9 @@ import java.util.StringTokenizer;
 public class ScriptTimer {
 
     /**
-     * Runs the given script (or command) using bash with "time -p",
-     * redirects the script’s stdout to "output.log", and captures the timing
-     * information from stderr. The timing values are expected in the format:
+     * Runs the given script (or command) using /usr/bin/time -p,
+     * redirects the script’s stdout to output.log, and captures the timing
+     * information from stderr. The timing output is expected in the format:
      *
      * real <value>
      * user <value>
@@ -23,17 +23,15 @@ public class ScriptTimer {
      * @throws InterruptedException If the process is interrupted.
      */
     public static double[] runScript(String script) throws IOException, InterruptedException {
-        // Build a command that runs: bash -c "time -p <script>"
-        // We let ProcessBuilder redirect stdout to output.log.
-        ProcessBuilder pb = new ProcessBuilder("bash", "-c", "time -p " + script);
+        // Use the external time command.
+        ProcessBuilder pb = new ProcessBuilder("bash", "-c", "/usr/bin/time -p " + script);
         // Redirect stdout to output.log.
         pb.redirectOutput(new File("output.log"));
-        // We will capture stderr (where time prints its output).
+        // We want to capture stderr (where /usr/bin/time writes its output).
         pb.redirectErrorStream(false);
 
         Process process = pb.start();
 
-        // Read the error stream which should contain the timing info.
         BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
         String line;
         double user = 0.0, real = 0.0, sys = 0.0;
@@ -45,25 +43,25 @@ public class ScriptTimer {
                 real = parseTimeValue(line);
             } else if (line.startsWith("sys")) {
                 sys = parseTimeValue(line);
+            } else {
+                // Print any unexpected lines (for debugging)
+                System.err.println("Time output: " + line);
             }
         }
         errReader.close();
 
-        // Wait for process to complete.
         process.waitFor();
 
         return new double[] { user, real, sys };
     }
 
-    // Helper method to parse a line of the form "keyword value"
     private static double parseTimeValue(String line) {
         StringTokenizer st = new StringTokenizer(line);
-        st.nextToken(); // skip the keyword (e.g., "real")
+        st.nextToken(); // skip the keyword ("user", "real", or "sys")
         if (st.hasMoreTokens()) {
             try {
                 return Double.parseDouble(st.nextToken());
             } catch (NumberFormatException e) {
-                // Log or rethrow as needed.
                 return 0.0;
             }
         }
@@ -73,8 +71,8 @@ public class ScriptTimer {
     // For testing purposes.
     public static void main(String[] args) {
         try {
-            // Example: run a simple command that prints "Hello" and sleeps 1 second.
-            double[] timings = runScript("echo Hello && sleep 1");
+            // Test with a command that takes measurable time.
+            double[] timings = runScript("sleep 2");
             System.out.println("User: " + timings[0] + " sec");
             System.out.println("Real: " + timings[1] + " sec");
             System.out.println("Sys: " + timings[2] + " sec");

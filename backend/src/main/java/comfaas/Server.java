@@ -71,18 +71,20 @@ public class Server extends CoreOperations {
         // break;
         // }
         // }
-        String effectiveType = "edge";
+        String effectiveType = Main.serverType;
         // Now, assign the algorithm instance using the new constructor (only node type
         // needed)
-        this.algo = new TheAlgo(effectiveType);
+        if ("edge".equals(effectiveType) || "cloud".equals(effectiveType)) {
+            this.algo = new TheAlgo(effectiveType);
+            String ownIP = socket.getInetAddress().getHostAddress();
+            this.algo.ipUpdate(ownIP);
+        }
         // System.err.println("Algo: " + algo);
 
         // If this instance represents an edge (all servers except the cloud), call
         // ipUpdate
-        if ("edge".equalsIgnoreCase(effectiveType)) {
-            String ownIP = socket.getInetAddress().getHostAddress();
-            this.algo.ipUpdate(ownIP);
-        }
+        // if ("edge".equalsIgnoreCase(effectiveType)) {
+        // }
         // (faasUpdate calls are handled later when tasks are executed)
         String[] initialIPs = getUniqueIPs();
         System.err.println("current IPs: " + Arrays.toString(initialIPs));

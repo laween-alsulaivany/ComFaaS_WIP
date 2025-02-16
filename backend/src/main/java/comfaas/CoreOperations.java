@@ -727,7 +727,10 @@ public class CoreOperations {
             if (!jRunner.compileJavaProgram(javaFile.getAbsolutePath())) {
                 throw new IOException("Failed to compile Java program: " + programName);
             }
-            String className = jRunner.getClassName(programName); // Assumes this method extracts class name correctly.
+            String className = jRunner.getClassName(programName); // e.g. WaitFor3Seconds
+            // Construct the command using the compiled class (ensure that the class is in
+            // the default package
+            // or adjust the classpath accordingly).
             command = "java -cp " + serverProgramsFolder + " " + className;
         } else if ("c".equalsIgnoreCase(language)) {
             // For C, if the file ends with ".c", compile it first.
@@ -737,9 +740,12 @@ public class CoreOperations {
                 if (!cRunner.compileCProgram(cFile.getAbsolutePath())) {
                     throw new IOException("Failed to compile C program: " + programName);
                 }
-                // Assume the executable has the same name without the ".c" extension.
-                String exeName = programName.substring(0, programName.length() - 2);
-                command = serverProgramsFolder + "/" + exeName;
+                // Assume the executable has the same name without the ".c" extension. // Remove
+                // the ".c" extension robustly.
+                int dotIndex = programName.lastIndexOf('.');
+                String exeName = (dotIndex != -1) ? programName.substring(0, dotIndex) : programName;
+                // Prepend "./" so that the executable is run from the current directory.
+                command = "./" + exeName;
             } else {
                 // Otherwise assume it is an already compiled executable.
                 command = serverProgramsFolder + "/" + programName;
@@ -749,6 +755,9 @@ public class CoreOperations {
         }
         // Run the command with ScriptTimer and return the timings.
         double[] timings = ScriptTimer.runScript(command);
+        if (timings[1] == 0) {
+            return 0.0;
+        }
         System.out.println("(User + Sys) / Real: " + (timings[0] + timings[2]) / timings[1]);
         double CPU_Load = (timings[0] + timings[2]) / timings[1];
         return CPU_Load;

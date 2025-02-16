@@ -27,7 +27,7 @@ public class ScriptTimer {
         // ProcessBuilder venv = new ProcessBuilder(venvPath + "/bin/python" + script);
         ProcessBuilder pb = new ProcessBuilder("bash", "-c", "/usr/bin/time -p " + script);
         // Redirect stdout to output.log.
-        pb.redirectOutput(new File("output.log"));
+        pb.redirectOutput(new File("output.txt"));
         // We want to capture stderr (where /usr/bin/time writes its output).
         pb.redirectErrorStream(false);
 

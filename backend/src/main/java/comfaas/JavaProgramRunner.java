@@ -1,6 +1,9 @@
 package comfaas;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class JavaProgramRunner {
 
@@ -28,7 +31,7 @@ public class JavaProgramRunner {
     }
 
     public void runJavaProgram(String className) throws IOException, InterruptedException {
-        ProcessBuilder processBuilder = new ProcessBuilder("java", className);
+        ProcessBuilder processBuilder = new ProcessBuilder("java -cp . ", className);
 
         Process process = processBuilder.start();
 

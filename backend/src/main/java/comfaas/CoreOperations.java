@@ -732,6 +732,7 @@ public class CoreOperations {
             // the default package
             // or adjust the classpath accordingly).
             command = "java -cp " + serverProgramsFolder + " " + className;
+            // System.out.println("command: " + command);
         } else if ("c".equalsIgnoreCase(language)) {
             // For C, if the file ends with ".c", compile it first.
             File cFile = new File(serverProgramsFolder, programName);

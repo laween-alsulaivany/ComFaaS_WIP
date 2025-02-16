@@ -447,7 +447,8 @@ public class CoreOperations {
         System.out.println("Average CPU Usage by Sampling: " + avgCpuTimeSampling);
         System.out.println("   ");
         System.out.println("print current directory: " + System.getProperty("user.dir"));
-        double[] timings = ScriptTimer.runScript(programName);
+        String command = "python " + serverProgramsFolder + "/" + programName;
+        double[] timings = ScriptTimer.runScript(command);
         System.out.println("User: " + timings[0] + " sec");
         System.out.println("Real: " + timings[1] + " sec");
         System.out.println("Sys: " + timings[2] + " sec");

@@ -24,6 +24,7 @@ public class ScriptTimer {
      */
     public static double[] runScript(String script) throws IOException, InterruptedException {
         // Use the external time command.
+        // ProcessBuilder venv = new ProcessBuilder(venvPath + "/bin/python" + script);
         ProcessBuilder pb = new ProcessBuilder("bash", "-c", "/usr/bin/time -p " + script);
         // Redirect stdout to output.log.
         pb.redirectOutput(new File("output.log"));

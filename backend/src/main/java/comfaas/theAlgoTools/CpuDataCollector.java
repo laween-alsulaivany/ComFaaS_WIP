@@ -23,6 +23,14 @@ public class CpuDataCollector {
     private ScheduledExecutorService scheduler;
 
     /**
+     * Starts a scheduled task that calls collect() once every second.
+     */
+    public CpuDataCollector() {
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(this::collect, 0, 1, TimeUnit.SECONDS);
+    }
+
+    /**
      * Calls OtherClass.function(), retrieves a double value, and adds it to the circular buffer.
      * Once the buffer is filled the first time, the flag 'bufferFilled' remains true.
      */
@@ -76,18 +84,12 @@ public class CpuDataCollector {
         }
     }
 
-    /**
-     * Starts a scheduled task that calls collect() once every second.
-     */
-    public void startAutoCollect() {
-        scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(this::collect, 0, 1, TimeUnit.SECONDS);
-    }
+    
 
     /**
      * Stops the auto-collection thread gracefully.
      */
-    public void stopAutoCollect() {
+    public void close() {
         if (scheduler != null) {
             scheduler.shutdown();
             try {
@@ -104,7 +106,6 @@ public class CpuDataCollector {
     // Example usage:
     public static void main(String[] args) {
         CpuDataCollector collector = new CpuDataCollector();
-        collector.startAutoCollect();
 
         // Continuously print the average every second.
         // Note: The average() call will block until the first 5 values have been collected.
@@ -120,7 +121,7 @@ public class CpuDataCollector {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        collector.stopAutoCollect();
+        collector.close();
         printer.shutdownNow();
     }
 }

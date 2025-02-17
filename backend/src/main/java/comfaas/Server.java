@@ -62,31 +62,32 @@ public class Server extends CoreOperations {
         logger.logEvent(LogLevel.SUCCESS, "Server", "Connection",
                 "Server Connection established with client.", 0, -1);
 
-        String[] initialIPs = getUniqueIPs();
-        System.err.println("Initial IPs: " + Arrays.toString(initialIPs));
-
-        // Determine effective server type based on whether one of the initial IPs
-        // equals cloudIP.
-        boolean isCloud = false;
-        for (String ip : initialIPs) {
-            if (ip.equals(cloudIP)) {
-                isCloud = true;
-                break;
-            }
-        }
-        String effectiveType = isCloud ? "cloud" : "edge";
+        // // Determine effective server type based on whether one of the initial IPs
+        // // equals cloudIP.
+        // boolean isCloud = false;
+        // for (String ip : initialIPs) {
+        // if (ip.equals(cloudIP)) {
+        // isCloud = true;
+        // break;
+        // }
+        // }
+        String effectiveType = Main.serverType;
         // Now, assign the algorithm instance using the new constructor (only node type
         // needed)
-        this.algo = new TheAlgo(effectiveType);
-        System.err.println("Algo: " + algo);
-
-        // If this instance represents an edge (all servers except the cloud), call
-        // ipUpdate
-        if ("edge".equalsIgnoreCase(effectiveType)) {
+        if ("edge".equals(effectiveType) || "cloud".equals(effectiveType)) {
+            this.algo = new TheAlgo(effectiveType);
             String ownIP = socket.getInetAddress().getHostAddress();
             this.algo.ipUpdate(ownIP);
         }
+        // System.err.println("Algo: " + algo);
+
+        // If this instance represents an edge (all servers except the cloud), call
+        // ipUpdate
+        // if ("edge".equalsIgnoreCase(effectiveType)) {
+        // }
         // (faasUpdate calls are handled later when tasks are executed)
+        String[] initialIPs = getUniqueIPs();
+        System.err.println("current IPs: " + Arrays.toString(initialIPs));
     }
 
     // Updated storeEdgeInfo remains the same.
@@ -119,6 +120,8 @@ public class Server extends CoreOperations {
 
         // +++ Only if we are a cloud server, start discovering edges +++
         if ("cloud".equalsIgnoreCase(Main.serverType)) {
+            TheAlgo algo = new TheAlgo(Main.serverType);
+            algo.ipUpdate(cloudIP);
             logger.logEvent(LogLevel.INFO, "Server", "Startup",
                     "Server type is CLOUD; starting EdgeDiscovery thread...", 0, -1);
 

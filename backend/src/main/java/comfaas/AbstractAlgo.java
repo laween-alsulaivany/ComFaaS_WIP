@@ -21,11 +21,12 @@ public abstract class AbstractAlgo {
         this.node = node;
         this.ipDictionary = new HashMap<>();
         // for (String ip : IPs) {
-        //     // Storing each IP in the dictionary. Adjust the key/value as needed.
-        //     ipDictionary.put(ip, ip);
+        // // Storing each IP in the dictionary. Adjust the key/value as needed.
+        // ipDictionary.put(ip, ip);
         // }
         // Initialize the FaaS dictionary.
         this.faasDictionary = new HashMap<>();
+        System.out.println("AbstractAlgo constructor: " + node);
     }
 
     /**
@@ -33,11 +34,11 @@ public abstract class AbstractAlgo {
      * with any new IP addresses.
      */
     public final synchronized void ipUpdate(String IP) {
-        ipUpdateImpl(IP) ;
+        ipUpdateImpl(IP);
     }
-    // implement the core logic of ipUpdate
-    protected abstract void ipUpdateImpl(String IP) ;
 
+    // implement the core logic of ipUpdate
+    protected abstract void ipUpdateImpl(String IP);
 
     /**
      * Reads "bench.json" from $SERVER_DIR/Output and updates faasDictionary
@@ -46,7 +47,9 @@ public abstract class AbstractAlgo {
     public abstract void faasUpdate(String fileName, double CPU, double RAM, double fileSize);
 
     /**
-     * This is a future proof method to incorperate more information that comfaas can provide. 
+     * This is a future proof method to incorperate more information that comfaas
+     * can provide.
+     * 
      * @param fileName
      * @param CPU
      * @param RAM

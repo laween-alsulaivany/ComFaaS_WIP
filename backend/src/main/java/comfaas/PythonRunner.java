@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 
-
 public class PythonRunner {
 
     public static void createVirtualEnv(String venvPath) throws IOException, InterruptedException {
@@ -24,26 +23,29 @@ public class PythonRunner {
         System.out.println("Installing packages in the virtual environment...");
         String pipExecutable = venvPath + "/bin/pip";
         ProcessBuilder processBuilder = new ProcessBuilder(pipExecutable, "install");
-        
+
         // Add packages to the command
         processBuilder.command().addAll(Arrays.asList(packages));
 
         executeProcess(processBuilder);
     }
 
-    public static void runPythonScriptInVenv(String venvPath, String scriptPath) throws IOException, InterruptedException {
+    public static void runPythonScriptInVenv(String venvPath, String scriptPath)
+            throws IOException, InterruptedException {
         String pythonExecutable = venvPath + "/bin/python";
         System.out.println("Running Python script: " + scriptPath + " in the virtual environment...");
         ProcessBuilder processBuilder = new ProcessBuilder(pythonExecutable, scriptPath);
         executeProcess(processBuilder);
     }
 
-    public static void runPythonScriptWithMpi(String venvPath, String scriptPath, int numProcesses) throws IOException, InterruptedException {
+    public static void runPythonScriptWithMpi(String venvPath, String scriptPath, int numProcesses)
+            throws IOException, InterruptedException {
         String pythonExecutable = venvPath + "/bin/python";
         System.out.println("Running Python script: " + scriptPath + " with mpirun (" + numProcesses + " processes)...");
 
         // Using mpirun with the virtual environment's Python interpreter
-        ProcessBuilder processBuilder = new ProcessBuilder("mpirun", "-np", String.valueOf(numProcesses), pythonExecutable, scriptPath);
+        ProcessBuilder processBuilder = new ProcessBuilder("mpirun", "-np", String.valueOf(numProcesses),
+                pythonExecutable, scriptPath);
         executeProcess(processBuilder);
     }
 
@@ -70,9 +72,9 @@ public class PythonRunner {
     }
 
     public static void runPythonScript(String scriptPath) throws IOException, InterruptedException {
-    
+
         ProcessBuilder processBuilder = new ProcessBuilder("python3", scriptPath);
-        
+
         Process process = processBuilder.start();
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -95,11 +97,10 @@ public class PythonRunner {
         // PythonRunner runner = new PythonRunner();
 
         String scriptPath = "/path/to/your/script.py";
-        
+
         try {
             PythonRunner.runPythonScript(scriptPath);
         } catch (IOException | InterruptedException e) {
         }
     }
 }
-

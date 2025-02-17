@@ -1,19 +1,11 @@
 package comfaas;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import comfaas.theAlgoTools.CpuDataCollector;
 
@@ -51,18 +43,20 @@ public class TheAlgo extends AbstractAlgo {
      */
     @Override
     protected void ipUpdateImpl(String IP) {
-        String serverDir = System.getenv("SERVER_DIR");
-        if (serverDir == null) {
-            System.err.println("SERVER_DIR environment variable not set.");
-            return;
-        }
-
-        if (!ipDictionary.containsKey(IP)) {
-            ipDictionary.put(IP, IP);
-            System.out.println("IP dictionary updated with new entry: " + IP);
-        } else {
-            System.out.println("IP address already exists in the dictionary: " + IP);
-        }
+        System.err.println("ipUpdateImpl was called in algo.");
+        System.err.println("IP: " + IP);
+        // String serverDir = System.getenv("SERVER_DIR");
+        // if (serverDir == null) {
+        // System.err.println("SERVER_DIR environment variable not set.");
+        // return;
+        // }
+        // if (!ipDictionary.containsKey(IP)) {
+        // ipDictionary.put(this.node, IP);
+        // ipDictionary.put(IP, IP);
+        // System.out.println("IP dictionary updated with new entry: " + IP);
+        // } else {
+        // System.out.println("IP address already exists in the dictionary: " + IP);
+        // }
     }
 
     /**
@@ -76,29 +70,36 @@ public class TheAlgo extends AbstractAlgo {
             System.err.println("SERVER_DIR environment variable not set.");
             return;
         }
-        String benchFilePath = serverDir + "/Output/bench.json";
-        try {
-            String content = new String(Files.readAllBytes(Paths.get(benchFilePath)), StandardCharsets.UTF_8);
-            // Assume bench.json is a JSON object where keys are FaaS file names.
-            JSONObject jsonObject = new JSONObject(content);
-            for (String key : jsonObject.keySet()) {
-                if (!faasDictionary.containsKey(key)) {
-                    // Here, we simply store the associated value as a String.
-                    faasDictionary.put(key, jsonObject.getString(key));
-                }
-            }
-            System.out.println("FaaS dictionary updated with new entries from bench.json.");
-        } catch (IOException e) {
-            System.err.println("Error reading bench.json: " + e.getMessage());
-        } catch (JSONException e) {
-            System.err.println("Error parsing bench.json: " + e.getMessage());
-        }
+
+        System.out.println("faasUpdate was called in algo.");
+        System.out.println("fileName: " + fileName);
+        System.out.println("CPU: " + CPU);
+        System.out.println("Mem: " + RAM);
+        System.out.println("fileSize: " + fileSize);
+        // String benchFilePath = serverDir + "/Output/bench.json";
+        // try {
+        // String content = new String(Files.readAllBytes(Paths.get(benchFilePath)),
+        // StandardCharsets.UTF_8);
+        // // Assume bench.json is a JSON object where keys are FaaS file names.
+        // JSONObject jsonObject = new JSONObject(content);
+        // for (String key : jsonObject.keySet()) {
+        // if (!faasDictionary.containsKey(key)) {
+        // // Here, we simply store the associated value as a String.
+        // faasDictionary.put(key, jsonObject.getString(key));
+        // }
+        // }
+        // System.out.println("FaaS dictionary updated with new entries from
+        // bench.json.");
+        // } catch (IOException e) {
+        // System.err.println("Error reading bench.json: " + e.getMessage());
+        // } catch (JSONException e) {
+        // System.err.println("Error parsing bench.json: " + e.getMessage());
+        // }
     }
 
     public void faasUpdate(String fileName, double CPU, double RAM, double fileSize, String[] additonalArgs) {
-        faasUpdate( fileName, CPU, RAM, fileSize) ;
+        faasUpdate(fileName, CPU, RAM, fileSize);
     }
-
 
     /**
      * Looks up the given FaaS file name in the FaaS dictionary, validates that it
@@ -132,9 +133,18 @@ public class TheAlgo extends AbstractAlgo {
      */
     @Override
     public void close() {
-
-        cpuDataCollector.close() ;
-
+        // Shutdown the executor service.
+        if (executor != null) {
+            executor.shutdownNow();
+        }
+        // Close the socket if it was opened./
+        // if (socket != null) {/
+        //     try {
+        //         socket.close();
+        //     } catch (IOException e) {
+        //         System.err.println("Error closing socket: " + e.getMessage());
+        //     }
+        // }
         System.out.println("TheAlgo closed successfully.");
     }
 }

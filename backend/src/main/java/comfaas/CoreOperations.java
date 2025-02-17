@@ -665,6 +665,7 @@ public class CoreOperations {
         } catch (IOException | InterruptedException e) {
             throw new IOException("Error executing task on Cloud: " + e.getMessage(), e);
         }
+        RequestLogger.logRequest(program, false);
         return 0; // success
     }
 

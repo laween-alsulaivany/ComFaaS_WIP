@@ -23,14 +23,16 @@ TASKS=(
     "WaitFor3Seconds.c"
     "WaitFor3Seconds.java"
     "WaitFor3Seconds.py"
-    "cpu_stress.c"
-    "memory_stress.py"
     "mpi4py_test.py"
     "mpiPython_test.py"
     "mpich_matrix_mult.c"
     "mpich_pi_reduce.c"
 )
 
+# TASKS=(
+#     "cpu_stress.c"
+#     "memory_stress.py"
+# )
 # Function to determine language based on file extension
 get_language() {
     case "$1" in

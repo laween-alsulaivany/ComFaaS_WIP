@@ -52,6 +52,7 @@ public class Client extends CoreOperations {
     // Constructor that takes in command-line args and connects to the server.
     // ------------------------------------------
     public Client(String[] args) {
+        super() ;
         logger.info("Client", "Constructor", "Client initialized.");
 
         // Parse arguments

@@ -46,6 +46,7 @@ public class Server extends CoreOperations {
     // Default constructor, if needed.
     // ------------------------------------------
     public Server() {
+        super() ;
         logger.logEvent(LogLevel.INFO, "Server", "Initialization",
                 "Server instance created (no client yet).", 0, -1);
     }

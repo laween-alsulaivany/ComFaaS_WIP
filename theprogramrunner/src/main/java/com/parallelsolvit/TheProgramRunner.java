@@ -1,4 +1,4 @@
-package comfaas ;
+package com.parallelsolvit ;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -49,6 +49,7 @@ public class TheProgramRunner extends AbstractProgramRunner {
             // Copy the program file from programsFolder to the temporary directory.
             Path srcProgram = parentPath.resolve(fileName);
             Path destProgram = tempDir.resolve(fileName);
+            
             Files.copy(srcProgram, destProgram, StandardCopyOption.REPLACE_EXISTING);
 
             // If input data is provided, copy it into the temporary directory.
@@ -259,24 +260,4 @@ public class TheProgramRunner extends AbstractProgramRunner {
         return (index > 0 && index < fileName.length() - 1) ? fileName.substring(index + 1) : "";
     }
 
-    // Optional main method for testing purposes.
-    public static void main(String[] args) {
-        // Adjust these paths for your environment.
-        String venvBin = "~/Judahswork/ComFaaS_WIP/.serverVenv/bin";
-        String progs = "~/Judahswork/ComFaaS_WIP/tests/SamplePrograms";
-
-        TheProgramRunner runner = new TheProgramRunner(venvBin, progs);
-        try {
-            // Example: run a serial Java program.
-            runner.run("WaitFor3Seconds.java", "~", "~");
-
-            // Example: run a parallel MPI C program.
-            runner.run("mpich_pi_reduce.c", "~", "~", 4);
-
-            // Example: run a parallel MPI Python script.
-            runner.run("mpiPython_test.py", "~", "~", 8);
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
 }

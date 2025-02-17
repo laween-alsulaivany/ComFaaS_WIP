@@ -134,9 +134,13 @@ public class TheAlgo extends AbstractAlgo {
     @Override
     public void close() {
         // Shutdown the executor service.
-        if (executor != null) {
-            executor.shutdownNow();
-        }
+
+        // if (executor != null) {
+        //     executor.shutdownNow();
+        // }
+
+
+        
         // Close the socket if it was opened./
         // if (socket != null) {/
         //     try {

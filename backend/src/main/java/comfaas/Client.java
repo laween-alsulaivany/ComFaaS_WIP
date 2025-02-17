@@ -108,6 +108,8 @@ public class Client extends CoreOperations {
         // System.out.println("trying to Autoupload task file");
         autoUploadTaskFile(programName);
         logger.info("Client", "runTask", "Autoupload task file done");
+
+        RequestLogger.logRequest("runTask", true);
         dos.writeUTF("runTask");
         // System.out.println("writing runTask");
         logger.info("Client", "runTask", "Executing task: " +

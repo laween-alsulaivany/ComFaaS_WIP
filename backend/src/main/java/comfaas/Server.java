@@ -46,7 +46,7 @@ public class Server extends CoreOperations {
     // Default constructor, if needed.
     // ------------------------------------------
     public Server() {
-        super() ;
+        super();
         logger.logEvent(LogLevel.INFO, "Server", "Initialization",
                 "Server instance created (no client yet).", 0, -1);
     }
@@ -75,11 +75,12 @@ public class Server extends CoreOperations {
         String effectiveType = Main.serverType;
         // Now, assign the algorithm instance using the new constructor (only node type
         // needed)
-        if ("edge".equals(effectiveType) || "cloud".equals(effectiveType)) {
-            this.algo = new TheAlgo(effectiveType);
-            String ownIP = socket.getInetAddress().getHostAddress();
-            this.algo.ipUpdate(ownIP);
-        }
+        // TODO: Uncomment this when you have the new constructor
+        // if ("edge".equals(effectiveType) || "cloud".equals(effectiveType)) {
+        // this.algo = new TheAlgo(effectiveType);
+        // String ownIP = socket.getInetAddress().getHostAddress();
+        // this.algo.ipUpdate(ownIP);
+        // }
         // System.err.println("Algo: " + algo);
 
         // If this instance represents an edge (all servers except the cloud), call
@@ -131,6 +132,8 @@ public class Server extends CoreOperations {
             // discoveryThread.start();
         } else if ("edge".equalsIgnoreCase(Main.serverType)) {
             // Edge = Start EdgeResponder
+            TheAlgo algo = new TheAlgo(Main.serverType);
+            algo.ipUpdate(cloudIP);
             logger.logEvent(LogLevel.INFO, "Server", "Startup",
                     "Server type is EDGE; starting EdgeResponder thread...", 0, -1);
 

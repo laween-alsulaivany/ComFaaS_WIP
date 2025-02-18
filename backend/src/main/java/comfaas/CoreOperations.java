@@ -395,19 +395,6 @@ public class CoreOperations {
         String programName = dis.readUTF();
         int np = dis.readInt();
 
-        // Compute metrics to pass to the FaaS update:
-
-        // File programFile = new File(serverProgramsFolder, programName);
-        // double fileSize = programFile.exists() ? programFile.length() : 0;
-        // // double ProcessCpuUsage =
-        // // comfaas.theAlgoTools.ProcessCpuUsage.getProcessCpuLoadPercentage();
-        // // double ProcessMemoryUsage =
-        // // comfaas.theAlgoTools.ProcessMemoryUsage.getUsedMemoryMB();
-
-        // long startTime = System.nanoTime();
-        // long startCpuTime = ProcessCpuUsage.getProcessCpuTimeNanos();
-
-        // Immediately send acknowledgment to the client.
         dos.writeUTF("Task started");
         dos.flush();
 
@@ -415,23 +402,20 @@ public class CoreOperations {
         taskExecutor.submit(() -> {
             try {
                 // Execute the task.
-                if ("server".equalsIgnoreCase(location)) {
-                    runProgramOnServer(language, programName, np);
-                    if ("edge".equalsIgnoreCase(Main.serverType)) {
+                switch (location.toLowerCase()) {
+                    case "server" -> runProgramOnServer(language, programName, np);
+                    case "edge" -> {
                         runBenchmark(programName, language, np);
                         forwardFileToCloud(serverProgramsFolder, serverProgramsFolder, programName);
                         deleteLocalProgram(programName);
-                        logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
-                                "Edge server type was detected", 0, -1);
                     }
-
-                } else {
-                    logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleExecuteTask",
+                    default -> logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleExecuteTask",
                             "Invalid location: " + location, 0, -1);
                 }
+
                 logger.logEvent(LogLevel.INFO, "CoreOperations", "handleExecuteTask",
                         "Task completed asynchronously", 0, -1);
-            } catch (Exception ex) {
+            } catch (IOException | InterruptedException ex) {
                 logger.logEvent(LogLevel.ERROR, "CoreOperations", "handleExecuteTask",
                         "Error executing task asynchronously: " + ex.getMessage(), 0, -1);
             }
@@ -439,64 +423,6 @@ public class CoreOperations {
         });
 
         taskExecutor.shutdown();
-        // if (algo != null)
-
-        // {
-        // algo.faasUpdate(programName, ProcessCpuUsage, ProcessMemoryUsage, fileSize);
-        // } else {
-        // logger.logEvent(LogLevel.WARNING, "CoreOperations", "handleExecuteTask",
-        // "Algorithm instance is null. Skipping faasUpdate.", 0, -1);
-        // }
-
-        // long endTime = System.nanoTime();
-        // long endCpuTime = ProcessCpuUsage.getProcessCpuTimeNanos();
-        // long elapsedTime = endTime - startTime;
-        // int cores = Runtime.getRuntime().availableProcessors();
-
-        // double avgCpuTimeMethod =
-        // ProcessCpuUsage.averageCpuUsageUsingTime(startCpuTime, endCpuTime,
-        // elapsedTime,
-        // cores);
-        // System.out.println("Average CPU Usage by Time: " + avgCpuTimeMethod);
-        // System.out.println(" ");
-
-        // double avgCpuTimeSampling = ProcessCpuUsage.averageCpuUsageBySampling(5000,
-        // 500); // sample for 5 seconds every
-        // // 500ms
-        // System.out.println("Average CPU Usage by Sampling: " + avgCpuTimeSampling);
-        // System.out.println(" ");
-        // System.out.println("print current directory: " +
-        // System.getProperty("user.dir"));
-
-        // String command = "$SERVER_VENV/bin/python " + serverProgramsFolder + "/" +
-        // programName;
-        // // String command = "python3 " + serverProgramsFolder + "/" + programName;
-        // System.err.println("command: " + command);
-        // double[] timings = ScriptTimer.runScript(command);
-        // System.out.println("User: " + timings[0] + " sec");
-        // System.out.println("Real: " + timings[1] + " sec");
-        // System.out.println("Sys: " + timings[2] + " sec");
-        // System.out.println("(User + Sys) / Real: " + (timings[0] + timings[2]) /
-        // timings[1]);
-        // double maxMemoryUsed = ProcessMemoryUsage.maxMemoryUsageDuringPeriod(5000,
-        // 500); // sample for 5 seconds every
-        // // 500ms
-        // System.out.println(" ");
-        // System.out.println("====================================================");
-        // System.out.println(" ");
-        // System.out.println("Max Memory Used: " + maxMemoryUsed);
-        // System.out.println(" ");
-        // System.out.println("====================================================");
-        // System.out.println(" ");
-
-        // System.out.println("====================================================");
-        // System.out.println("Sampling Method");
-        // System.out.println("====================================================");
-        // algo.faasUpdate(programName, avgCpuTimeSampling, maxMemoryUsed, fileSize);
-        // System.out.println("====================================================");
-        // System.out.println("Time Method");
-        // System.out.println("====================================================");
-        // algo.faasUpdate(programName, avgCpuTimeMethod, maxMemoryUsed, fileSize);
 
     }
 

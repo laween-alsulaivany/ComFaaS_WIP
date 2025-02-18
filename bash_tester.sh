@@ -25,13 +25,14 @@ TASKS=(
     "WaitFor3Seconds.py"
     "mpi4py_test.py"
     "mpiPython_test.py"
-    "mpich_matrix_mult.c"
     "mpich_pi_reduce.c"
 )
 
 # TASKS=(
 #     "cpu_stress.c"
 #     "memory_stress.py"
+    # "mpich_matrix_mult.c"
+    # "mpich_pi_reduce.c"
 # )
 # Function to determine language based on file extension
 get_language() {

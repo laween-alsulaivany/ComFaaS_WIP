@@ -1,7 +1,7 @@
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class Ex04_06_MatMul_Strassen_Double_Optimized {
+public class Matrix_Optimized {
     private static int matSize = 4; // Matrix size (should be a power of 2 for Strassen's algorithm)
     private static final int THRESHOLD = 64; // Hybrid threshold (use O(n³) multiplication if n ≤ THRESHOLD)
 
@@ -173,15 +173,17 @@ public class Ex04_06_MatMul_Strassen_Double_Optimized {
 
     public static void main(String[] args) {
 
-        if (args.length % 2 != 0) {
-            System.out.println("Please provide an even number of arguments for matrix size and file name pairs.");
-            return;
-        }
+        // if (args.length % 2 != 0) {
+        // System.out.println("Please provide an even number of arguments for matrix
+        // size and file name pairs.");
+        // return;
+        // }
 
-        int[] sizesAndRuns = new int[args.length];
-        for (int i = 0; i < args.length; i++) {
-            sizesAndRuns[i] = Integer.parseInt(args[i]);
-        }
+        // int[] sizesAndRuns = new int[args.length];
+        // for (int i = 0; i < args.length; i++) {
+        // sizesAndRuns[i] = Integer.parseInt(args[i]);
+        // }
+        int[] sizesAndRuns = new int[] { 32, 10, 64, 10, 128, 10, 256, 10, 512, 10, 1024, 10 };
 
         runBenchmark(sizesAndRuns);
     }

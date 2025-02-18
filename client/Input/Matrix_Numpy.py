@@ -34,7 +34,7 @@ class MatMulDouble:
         #         sys.exit(1)
 
         # Fixed values: matrix size = 512, runs = 10
-        sizes_and_runs = [(2048, 30)]
+        sizes_and_runs = [(2048, 100)]
 
         # Open CSV file to store results
         csv_filename = "benchmark_MatMul_NumPy_python.csv"

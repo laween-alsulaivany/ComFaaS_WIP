@@ -1,8 +1,7 @@
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Random;
 
-public class Ex03_06_MatMul_Double {
+public class Matrix {
 
     public static int matSize = 500; // Instance variable for matrix size
 
@@ -34,15 +33,28 @@ public class Ex03_06_MatMul_Double {
 
     public static void main(String[] args) {
 
-        if (args.length % 2 != 0) {
-            System.out.println("Please provide an even number of arguments for matrix size and file name pairs.");
-            return;
-        }
+        // if (args.length % 2 != 0) {
+        // System.out.println("Please provide an even number of arguments for matrix
+        // size and file name pairs.");
+        // return;
+        // }
 
-        int[] sizesAndRuns = new int[args.length];
-        for (int i = 0; i < args.length; i++) {
-            sizesAndRuns[i] = Integer.parseInt(args[i]);
-        }
+        // int[] sizesAndRuns = new int[args.length];
+        // for (int i = 0; i < args.length; i++) {
+        // sizesAndRuns[i] = Integer.parseInt(args[i]);
+        // }
+
+        // if (args.length % 2 != 0) {
+        // System.out.println("Please provide an even number of arguments for matrix
+        // size and file name pairs.");
+        // return;
+        // }
+
+        // int[] sizesAndRuns = new int[args.length];
+        // for (int i = 0; i < args.length; i++) {
+        // sizesAndRuns[i] = Integer.parseInt(args[i]);
+        // }
+        int[] sizesAndRuns = new int[] { 32, 10, 64, 10, 128, 10, 256, 10, 512, 10, 1024, 10 };
 
         runBenchmark(sizesAndRuns);
 

@@ -30,7 +30,7 @@ import comfaas.theAlgoTools.ScriptTimer;
 // ------------------------------------------
 public class CoreOperations {
 
-    protected AbstractProgramRunner programRunner ;
+    protected AbstractProgramRunner programRunner;
 
     // Streams & Socket
     protected Socket socket;
@@ -44,9 +44,12 @@ public class CoreOperations {
     protected AbstractAlgo algo;
 
     // Folder names for Client vs. Server
-    // public String clientInputFolder = ROOT.resolve("client").resolve("Input").toString();
-    // public String clientOutputFolder = ROOT.resolve("client").resolve("Output").toString();
-    // public String clientProgramsFolder = ROOT.resolve("client").resolve("Programs").toString();
+    // public String clientInputFolder =
+    // ROOT.resolve("client").resolve("Input").toString();
+    // public String clientOutputFolder =
+    // ROOT.resolve("client").resolve("Output").toString();
+    // public String clientProgramsFolder =
+    // ROOT.resolve("client").resolve("Programs").toString();
     // public String clientVenv = ROOT.resolve(".clientVenv").toString();
 
     public String serverInputFolder = ROOT.resolve("server").resolve("Input").toString();
@@ -62,7 +65,7 @@ public class CoreOperations {
     // ------------------------------------------
 
     public CoreOperations() {
-        programRunner = new TheProgramRunner(serverVenv, serverProgramsFolder) ;
+        programRunner = new TheProgramRunner(serverVenv, serverProgramsFolder);
     }
 
     public void manageRequests() throws IOException, InterruptedException {
@@ -641,34 +644,16 @@ public class CoreOperations {
         try {
             if (np == 1) {
                 switch (language.toLowerCase()) {
-                    // case "python" -> PythonRunner.runPythonScriptInVenv(serverVenv, filePath);
-                    case "python" -> programRunner.run(program,serverInputFolder, serverOutputFolder ) ;
-                    case "java" -> {
-                        JavaProgramRunner jRunner = new JavaProgramRunner();
-                        if (jRunner.compileJavaProgram(filePath)) {
-                            String className = jRunner.getClassName(program);
-                            jRunner.runJavaProgram(className);
-                        }
-                    }
-                    case "c" -> {
-                        CProgramRunner cRunner = new CProgramRunner();
-                        if (cRunner.compileCProgram(filePath)) {
-                            cRunner.runCProgram(filePath);
-                        }
-                    }
+                    case "python" -> programRunner.run(program, serverInputFolder, serverOutputFolder);
+                    case "java" -> programRunner.run(program, serverInputFolder, serverOutputFolder);
+                    case "c" -> programRunner.run(program, serverInputFolder, serverOutputFolder);
                     default -> throw new IOException("Unsupported language: " + language);
                 }
             } else if (np > 1) {
                 // Multi-process approach
                 switch (language.toLowerCase()) {
-                    // case "python" -> PythonRunner.runPythonScriptWithMpi(serverVenv, filePath, np);
-                    case "python" -> programRunner.run(program,serverInputFolder, serverOutputFolder, np) ;
-                    case "c" -> {
-                        CProgramRunner cRunner = new CProgramRunner();
-                        if (cRunner.compileMPICHProgram(filePath)) {
-                            cRunner.runMPICHProgram(filePath, np);
-                        }
-                    }
+                    case "python" -> programRunner.run(program, serverInputFolder, serverOutputFolder, np);
+                    case "c" -> programRunner.run(program, serverInputFolder, serverOutputFolder, np);
                     default -> throw new IOException("Unsupported language for multi-process: " + language);
                 }
             }

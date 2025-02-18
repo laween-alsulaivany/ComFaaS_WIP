@@ -19,6 +19,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import comfaas.Logger.LogLevel;
+import comfaas.ProgramRunner.AbstractProgramRunner;
+import comfaas.ProgramRunner.TheProgramRunner;
 import comfaas.theAlgoTools.ProcessMemoryUsage;
 import comfaas.theAlgoTools.ScriptTimer;
 
@@ -27,6 +29,8 @@ import comfaas.theAlgoTools.ScriptTimer;
 // * task execution, and communication between the server and the client.
 // ------------------------------------------
 public class CoreOperations {
+
+    protected AbstractProgramRunner programRunner ;
 
     // Streams & Socket
     protected Socket socket;
@@ -40,10 +44,10 @@ public class CoreOperations {
     protected AbstractAlgo algo;
 
     // Folder names for Client vs. Server
-    public String clientInputFolder = ROOT.resolve("client").resolve("Input").toString();
-    public String clientOutputFolder = ROOT.resolve("client").resolve("Output").toString();
-    public String clientProgramsFolder = ROOT.resolve("client").resolve("Programs").toString();
-    public String clientVenv = ROOT.resolve(".clientVenv").toString();
+    // public String clientInputFolder = ROOT.resolve("client").resolve("Input").toString();
+    // public String clientOutputFolder = ROOT.resolve("client").resolve("Output").toString();
+    // public String clientProgramsFolder = ROOT.resolve("client").resolve("Programs").toString();
+    // public String clientVenv = ROOT.resolve(".clientVenv").toString();
 
     public String serverInputFolder = ROOT.resolve("server").resolve("Input").toString();
     public String serverOutputFolder = ROOT.resolve("server").resolve("Output").toString();
@@ -56,6 +60,10 @@ public class CoreOperations {
     // ------------------------------------------
     // Server-Side: Manage incoming requests
     // ------------------------------------------
+
+    public CoreOperations() {
+        programRunner = new TheProgramRunner(serverVenv, serverProgramsFolder) ;
+    }
 
     public void manageRequests() throws IOException, InterruptedException {
         while (true) {
@@ -633,7 +641,8 @@ public class CoreOperations {
         try {
             if (np == 1) {
                 switch (language.toLowerCase()) {
-                    case "python" -> PythonRunner.runPythonScriptInVenv(serverVenv, filePath);
+                    // case "python" -> PythonRunner.runPythonScriptInVenv(serverVenv, filePath);
+                    case "python" -> programRunner.run(program,serverInputFolder, serverOutputFolder ) ;
                     case "java" -> {
                         JavaProgramRunner jRunner = new JavaProgramRunner();
                         if (jRunner.compileJavaProgram(filePath)) {
@@ -652,7 +661,8 @@ public class CoreOperations {
             } else if (np > 1) {
                 // Multi-process approach
                 switch (language.toLowerCase()) {
-                    case "python" -> PythonRunner.runPythonScriptWithMpi(serverVenv, filePath, np);
+                    // case "python" -> PythonRunner.runPythonScriptWithMpi(serverVenv, filePath, np);
+                    case "python" -> programRunner.run(program,serverInputFolder, serverOutputFolder, np) ;
                     case "c" -> {
                         CProgramRunner cRunner = new CProgramRunner();
                         if (cRunner.compileMPICHProgram(filePath)) {

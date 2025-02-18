@@ -34,7 +34,7 @@ error_exit() {
 # 2. Ensure required system packages
 # --------------------------------------------------------------------------------
 PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-PACKAGES=("python3-venv" "python3-dev" "mpich" "libopenmpi-dev" "openmpi-bin" "python3-full")
+PACKAGES=("python3-venv" "python3-dev" "mpich" "libmpich-dev" "libopenmpi-dev" "openmpi-bin" "python3-full")
 
 log "Checking required packages..."
 for PACKAGE in "${PACKAGES[@]}"; do
@@ -93,7 +93,7 @@ setup_virtualenv() {
     # Activate, upgrade pip, and install dependencies
     source "$ENV_PATH/bin/activate" || error_exit "Failed to activate virtual environment: $ENV_PATH"
     pip install --upgrade pip || error_exit "Failed to upgrade pip"
-    pip install mpiPython mpi4py transformers numpy || error_exit "Failed to install Python dependencies"
+    pip install mpiPython==1.0.15 mpi4py transformers numpy || error_exit "Failed to install Python dependencies"
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu ||  error_exit "Failed to install Python torch package"
     pip install --upgrade accelerate || error_exit "Failed to install Python accelerate package"
     deactivate

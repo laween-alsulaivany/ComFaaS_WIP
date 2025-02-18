@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.comfaas</groupId>
   <artifactId>backend</artifactId>
-  <packaging>jar</packaging>
+  <packaging>jar</packaging> <!-- This came as an error, needed to switch to pom instead of jar-->
   <version>1.0-SNAPSHOT</version>
   <name>backend</name>
   <url>http://maven.apache.org</url>
@@ -12,6 +12,10 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
   </properties>
+
+  <!-- <modules>
+    <module>theprogramrunner</module>
+  </modules> -->
 
   <dependencies>
     <!-- JSON library -->

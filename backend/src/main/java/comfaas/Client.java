@@ -52,7 +52,7 @@ public class Client extends CoreOperations {
     // Constructor that takes in command-line args and connects to the server.
     // ------------------------------------------
     public Client(String[] args) {
-        super() ;
+        super();
         logger.info("Client", "Constructor", "Client initialized.");
 
         // Parse arguments
@@ -110,7 +110,7 @@ public class Client extends CoreOperations {
         autoUploadTaskFile(programName);
         logger.info("Client", "runTask", "Autoupload task file done");
 
-        RequestLogger.logRequest("runTask", true);
+        RequestLogger.logRequest(programName, true);
         dos.writeUTF("runTask");
         // System.out.println("writing runTask");
         logger.info("Client", "runTask", "Executing task: " +
